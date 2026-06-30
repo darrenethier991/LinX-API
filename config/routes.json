@@ -1,0 +1,92 @@
+{
+  "_comment": "LinX canonical route map. One source of truth for all three workers.",
+  "_version": "1.1.0",
+
+  "workers": {
+    "api": {
+      "name": "linx-api",
+      "entry": "workers/api.js",
+      "baseUrl": "https://api.linxservices.ca",
+      "routes": [
+        { "method": "GET",   "path": "/health",                    "auth": false, "description": "Liveness check" },
+        { "method": "POST",  "path": "/api/contacts",              "auth": true,  "description": "Create/upsert CRM contact" },
+        { "method": "GET",   "path": "/api/contacts",              "auth": true,  "description": "List contacts (?limit&offset&q&tag&source)" },
+        { "method": "GET",   "path": "/api/contacts/:id",          "auth": true,  "description": "Get single contact" },
+        { "method": "PATCH", "path": "/api/contacts/:id",          "auth": true,  "description": "Update contact (tags, notes, lead_score, meta)" },
+        { "method": "POST",  "path": "/api/orgs",                  "auth": true,  "description": "Create org/team" },
+        { "method": "GET",   "path": "/api/orgs",                  "auth": true,  "description": "List orgs" },
+        { "method": "GET",   "path": "/api/orgs/:id",              "auth": true,  "description": "Get single org" },
+        { "method": "PATCH", "path": "/api/orgs/:id",              "auth": true,  "description": "Update org" },
+        { "method": "POST",  "path": "/api/automations/trigger",   "auth": true,  "description": "Fire a named automation trigger" },
+        { "method": "GET",   "path": "/api/automations/triggers",  "auth": true,  "description": "List registered triggers" },
+        { "method": "POST",  "path": "/api/events",                "auth": true,  "description": "Enqueue event onto KV bus" },
+        { "method": "GET",   "path": "/api/events",                "auth": true,  "description": "List recent events (?type&limit)" },
+        { "method": "GET",   "path": "/api/usage",                 "auth": true,  "description": "Usage stats for user/org (?start&end&org_id)" }
+      ]
+    },
+
+    "sms": {
+      "name": "linx-sms",
+      "entry": "workers/sms.js",
+      "baseUrl": "https://sms.linxservices.ca",
+      "routes": [
+        { "method": "POST", "path": "/sms/send",      "auth": false, "description": "Send outbound SMS via Twilio" },
+        { "method": "POST", "path": "/sms/receive",   "auth": false, "twilioWebhook": true, "description": "Twilio inbound webhook (HMAC-SHA1 validated)" },
+        { "method": "GET",  "path": "/sms/log",       "auth": false, "description": "SMS log (?direction&from&limit)" },
+        { "method": "GET",  "path": "/sms/opt-outs",  "auth": false, "description": "List opted-out phone numbers" }
+      ]
+    },
+
+    "ai": {
+      "name": "linx-ai-gateway",
+      "entry": "workers/ai-gateway.js",
+      "baseUrl": "https://ai.linxservices.ca",
+      "routes": [
+        { "method": "GET",    "path": "/health",                    "auth": false, "description": "Liveness + mode (proxy|workers-ai)" },
+        { "method": "GET",    "path": "/ai/models",                 "auth": false, "description": "List model aliases" },
+        { "method": "POST",   "path": "/ai/chat",                   "auth": false, "description": "Chat completion with history (?threadId)" },
+        { "method": "POST",   "path": "/ai/classify",               "auth": false, "description": "Intent classification for SMS/events" },
+        { "method": "POST",   "path": "/ai/agent",                  "auth": false, "description": "Single agent task dispatch" },
+        { "method": "POST",   "path": "/ai/route",                  "auth": false, "description": "Multi-agent chain runner" },
+        { "method": "GET",    "path": "/ai/history/:threadId",      "auth": false, "description": "Get conversation history" },
+        { "method": "DELETE", "path": "/ai/history/:threadId",      "auth": false, "description": "Clear conversation history" },
+        { "method": "GET",    "path": "/ai/memory/:ns/:key",        "auth": false, "description": "Read namespaced KV memory" },
+        { "method": "PUT",    "path": "/ai/memory/:ns/:key",        "auth": false, "description": "Write namespaced KV memory" },
+        { "method": "DELETE", "path": "/ai/memory/:ns/:key",        "auth": false, "description": "Delete namespaced KV memory" }
+      ],
+      "agentTasks": [
+        "summarize", "draft_reply", "extract",
+        "qualify_lead", "schedule_followup", "generate_quote",
+        "sentiment", "extract_entities", "route_to_department"
+      ],
+      "agentChains": {
+        "sms_intake":  ["extract_entities", "qualify_lead", "route_to_department"],
+        "crm_enrich":  ["sentiment", "extract_entities"],
+        "support":     ["sentiment", "draft_reply"]
+      }
+    }
+  },
+
+  "eventRouting": {
+    "sms.received":        ["qualify_lead"],
+    "sms.intent.detected": ["qualify_lead", "schedule_followup"],
+    "crm.contact.created": ["send_welcome_sms"],
+    "crm.contact.updated": [],
+    "workflow.started":    [],
+    "workflow.completed":  []
+  },
+
+  "kvKeySchema": {
+    "auth:{token32}":            "Cached Supabase user object (TTL 5m)",
+    "event:{type}:{ts}":         "KV event bus record (TTL 24h)",
+    "trigger:{name}:{ts}":       "Fired trigger record (TTL 24h)",
+    "sms:inbound:{sid}":         "Raw inbound SMS (TTL 7d)",
+    "sms:outbound:{sid}":        "Outbound SMS record (TTL 7d)",
+    "sms:classified:{sid}":      "Enriched + classified SMS (TTL 7d)",
+    "opt_out:{phone}":           "Opt-out flag (permanent, no TTL)",
+    "ai:chat:{hash32}":          "Cached chat response (TTL 1h)",
+    "ai:classify:{hash32}":      "Cached classification (TTL 1h)",
+    "history:{threadId}":        "Conversation history array (TTL 7d, max 20 messages)",
+    "mem:{ns}:{key}":            "Namespaced agent memory (TTL configurable, default 24h)"
+  }
+}

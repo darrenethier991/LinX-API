@@ -1,0 +1,17 @@
+{
+  "name": "linx-site",
+  "version": "0.1.0",
+  "private": true,
+  "description": "LinX SaaS — Cloudflare Workers + Supabase + Twilio",
+  "scripts": {
+    "dev":        "wrangler dev workers/api.js",
+    "dev:sms":    "wrangler dev workers/sms.js",
+    "dev:ai":     "wrangler dev workers/ai-gateway.js",
+    "deploy":     "wrangler deploy",
+    "deploy:sms": "wrangler deploy --env sms",
+    "deploy:ai":  "wrangler deploy --env ai"
+  },
+  "devDependencies": {
+    "wrangler": "^3.78.0"
+  }
+}
