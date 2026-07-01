@@ -1,1553 +1,208 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>LinX — Canada's Contractor Network</title>
-
-  <!-- Font -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-
-  <style>
-    :root {
-      --gold: #D4A853;
-      --gold-light: #E9C66A;
-      --gold-dark: #A27A33;
-      --bg: #000000;
-      --bg-surface: #050506;
-      --bg-card: #0B0B0D;
-      --text: #F5F5F5;
-      --text-muted: #A7A7A7;
-      --border: #1E1E22;
-      --success: #22C55E;
-      --error: #EF4444;
-      --info: #3B82F6;
-      --radius: 14px;
-    }
-
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-
-    html { scroll-behavior: smooth; }
-
-    body {
-      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-      background: radial-gradient(circle at top, #050509 0%, #000000 45%, #000000 100%);
-      color: var(--text);
-      line-height: 1.5;
-      font-size: 14px;
-      cursor: none;
-    }
-
-    a { color: var(--gold); text-decoration: none; }
-    a:hover { color: var(--gold-light); }
-
-    /* ── CUSTOM CURSOR ── */
-    #cursor-ring {
-      position: fixed;
-      width: 18px;
-      height: 18px;
-      border: 2px solid rgba(212,168,83,0.55);
-      border-radius: 50%;
-      pointer-events: none;
-      transform: translate(-50%, -50%);
-      transition: transform 0.12s ease-out;
-      z-index: 9999;
-    }
-
-    /* ── STAR FIELD ── */
-    .star {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      background: rgba(255,255,255,0.45);
-      border-radius: 50%;
-      animation: twinkle 4s infinite ease-in-out;
-    }
-
-    @keyframes twinkle {
-      0%, 100% { opacity: 0.15; }
-      50% { opacity: 0.9; }
-    }
-
-    /* ── NAV ── */
-    nav {
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      background: rgba(5,5,7,0.92);
-      border-bottom: 1px solid var(--border);
-      backdrop-filter: blur(10px);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 6%;
-      height: 64px;
-    }
-
-    .nav-logo {
-      font-size: 24px;
-      font-weight: 900;
-      letter-spacing: -0.04em;
-      display: flex;
-      align-items: center;
-      gap: 2px;
-    }
-
-    .nav-logo span:first-child {
-      color: var(--gold);
-      text-shadow: 0 0 6px rgba(212,168,83,0.45);
-    }
-
-    .nav-logo span:last-child {
-      color: #FFFFFF;
-    }
-
-    .nav-links {
-      display: flex;
-      gap: 24px;
-      list-style: none;
-      font-size: 12px;
-      font-weight: 500;
-    }
-
-    .nav-links a {
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-    }
-
-    .nav-links a:hover { color: var(--gold); }
-
-    .nav-cta {
-      background: var(--gold);
-      color: var(--bg);
-      padding: 8px 20px;
-      border-radius: 999px;
-      font-size: 12px;
-      font-weight: 600;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .nav-cta:hover { background: var(--gold-light); color: var(--bg); }
-
-    /* ── LAYOUT ── */
-    .container {
-      max-width: 1040px;
-      margin: 0 auto;
-      padding: 0 6%;
-    }
-
-    section { padding: 72px 0; }
-
-    .section-label {
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: 0.24em;
-      text-transform: uppercase;
-      color: var(--gold);
-      margin-bottom: 10px;
-    }
-
-    .section-title {
-      font-size: 32px;
-      font-weight: 800;
-      line-height: 1.2;
-      margin-bottom: 14px;
-    }
-
-    .section-sub {
-      font-size: 15px;
-      color: var(--text-muted);
-      max-width: 560px;
-      line-height: 1.7;
-    }
-
-    /* ── HERO ── */
-    .hero {
-      padding: 110px 0 80px;
-      text-align: center;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .hero-eyebrow {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      border: 1px solid rgba(212,168,83,0.35);
-      color: var(--gold);
-      font-size: 10px;
-      font-weight: 600;
-      letter-spacing: 0.28em;
-      text-transform: uppercase;
-      padding: 5px 16px;
-      border-radius: 999px;
-      margin-bottom: 32px;
-      background: rgba(0,0,0,0.6);
-    }
-
-    .hero h1 {
-      font-size: clamp(52px, 7vw, 80px);
-      font-weight: 800;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      margin-bottom: 22px;
-    }
-
-    .hero h1 em {
-      color: var(--gold);
-      font-style: normal;
-    }
-
-    .hero-sub {
-      font-size: 15px;
-      color: var(--text-muted);
-      max-width: 460px;
-      margin: 0 auto 40px;
-      line-height: 1.6;
-    }
-
-    .hero-actions {
-      display: flex;
-      gap: 12px;
-      justify-content: center;
-      flex-wrap: wrap;
-      margin-bottom: 56px;
-    }
-
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      padding: 9px 22px;
-      border-radius: 999px;
-      font-weight: 600;
-      font-size: 12px;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      transition: all 0.18s;
-      cursor: pointer;
-      font-family: inherit;
-      border: none;
-    }
-
-    .btn-primary {
-      background: #000;
-      border: 1px solid rgba(212,168,83,0.85);
-      color: var(--gold);
-    }
-    .btn-primary:hover {
-      background: var(--gold);
-      color: #000;
-    }
-
-    .btn-outline {
-      background: #000;
-      border: 1px solid var(--border);
-      color: var(--text);
-    }
-    .btn-outline:hover {
-      border-color: rgba(212,168,83,0.6);
-      color: var(--gold);
-    }
-
-    /* ── STATS BAR ── */
-    .stats-bar {
-      display: flex;
-      justify-content: center;
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      overflow: hidden;
-      background: rgba(5,5,7,0.9);
-    }
-
-    .stat-item {
-      flex: 1;
-      padding: 18px 12px;
-      text-align: center;
-      border-right: 1px solid var(--border);
-    }
-    .stat-item:last-child { border-right: none; }
-
-    .stat-num {
-      font-size: 24px;
-      font-weight: 800;
-      color: var(--gold);
-      display: block;
-    }
-
-    .stat-lbl {
-      font-size: 11px;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.16em;
-      margin-top: 2px;
-    }
-
-    /* ── LIVE FEED ── */
-    .live-feed-section {
-      background: var(--bg-surface);
-      border-top: 1px solid var(--border);
-      border-bottom: 1px solid var(--border);
-    }
-
-    .live-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 22px;
-    }
-
-    .live-dot {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--success);
-      text-transform: uppercase;
-      letter-spacing: 0.16em;
-    }
-
-    .live-dot::before {
-      content: '';
-      width: 8px;
-      height: 8px;
-      background: var(--success);
-      border-radius: 50%;
-    }
-
-    .live-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-      gap: 12px;
-    }
-
-    .live-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 14px;
-      display: flex;
-      align-items: flex-start;
-      gap: 10px;
-    }
-
-    .live-icon {
-      font-size: 22px;
-      line-height: 1;
-      flex-shrink: 0;
-    }
-
-    .live-title {
-      font-size: 14px;
-      font-weight: 600;
-      margin-bottom: 2px;
-    }
-
-    .live-meta {
-      font-size: 12px;
-      color: var(--text-muted);
-    }
-
-    .badge {
-      display: inline-block;
-      padding: 3px 9px;
-      border-radius: 999px;
-      font-size: 10px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-    }
-
-    .badge-live { background: rgba(34,197,94,0.12); color: var(--success); }
-    .badge-new  { background: rgba(59,130,246,0.12); color: var(--info); }
-    .badge-hot  { background: rgba(239,68,68,0.12); color: var(--error); }
-
-    /* ── HOW IT WORKS ── */
-    .steps {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 28px;
-      margin-top: 48px;
-    }
-
-    .step {
-      text-align: center;
-    }
-
-    .step-num {
-      width: 48px;
-      height: 48px;
-      border-radius: 50%;
-      border: 2px solid var(--gold);
-      color: var(--gold);
-      font-size: 18px;
-      font-weight: 800;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0 auto 14px;
-    }
-
-    .step h3 {
-      font-size: 16px;
-      font-weight: 700;
-      margin-bottom: 6px;
-    }
-
-    .step p {
-      font-size: 14px;
-      color: var(--text-muted);
-      line-height: 1.6;
-    }
-
-    /* ── WHO IT'S FOR ── */
-    .for-bg {
-      background: var(--bg-surface);
-      border-top: 1px solid var(--border);
-      border-bottom: 1px solid var(--border);
-    }
-
-    .for-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 22px;
-      margin-top: 40px;
-    }
-
-    .for-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 30px;
-      transition: border-color 0.2s;
-    }
-    .for-card:hover { border-color: var(--gold); }
-
-    .for-icon {
-      font-size: 28px;
-      margin-bottom: 12px;
-    }
-
-    .for-title {
-      font-size: 20px;
-      font-weight: 800;
-      margin-bottom: 10px;
-    }
-
-    .for-desc {
-      font-size: 14px;
-      color: var(--text-muted);
-      margin-bottom: 18px;
-      line-height: 1.7;
-    }
-
-    .for-features {
-      list-style: none;
-      display: flex;
-      flex-direction: column;
-      gap: 7px;
-    }
-
-    .for-features li {
-      font-size: 13px;
-      color: var(--text-muted);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .for-features li::before {
-      content: '✓';
-      color: var(--gold);
-      font-weight: 700;
-      flex-shrink: 0;
-    }
-
-    /* ── TESTIMONIALS ── */
-    .testimonials-bg {
-      background: var(--bg-surface);
-      border-top: 1px solid var(--border);
-      border-bottom: 1px solid var(--border);
-    }
-
-    .testimonials-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-      gap: 18px;
-      margin-top: 40px;
-    }
-
-    .testimonial {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 24px;
-    }
-
-    .stars {
-      color: var(--gold);
-      font-size: 12px;
-      margin-bottom: 10px;
-    }
-
-    .testimonial-body {
-      font-size: 14px;
-      color: var(--text-muted);
-      line-height: 1.7;
-      margin-bottom: 14px;
-      font-style: italic;
-    }
-
-    .testimonial-author {
-      font-size: 13px;
-      font-weight: 700;
-    }
-
-    .testimonial-role {
-      font-size: 12px;
-      color: var(--text-muted);
-    }
-
-    /* ── PRICING ── */
-    .pricing-toggle {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 12px;
-      margin: 32px 0;
-      font-size: 13px;
-      font-weight: 500;
-    }
-
-    .toggle-track {
-      width: 44px;
-      height: 24px;
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      position: relative;
-      cursor: pointer;
-    }
-
-    .toggle-thumb {
-      width: 18px;
-      height: 18px;
-      background: var(--gold);
-      border-radius: 50%;
-      position: absolute;
-      top: 3px;
-      left: 3px;
-      transition: left 0.2s;
-    }
-
-    .save-badge {
-      background: rgba(34,197,94,0.12);
-      color: var(--success);
-      font-size: 11px;
-      font-weight: 700;
-      padding: 3px 10px;
-      border-radius: 999px;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-    }
-
-    .pricing-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 18px;
-    }
-
-    .pricing-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 28px 24px;
-      position: relative;
-      transition: border-color 0.22s, transform 0.22s;
-    }
-
-    .pricing-card:hover {
-      border-color: rgba(212,168,83,0.5);
-      transform: translateY(-2px);
-    }
-
-    .pricing-card.featured {
-      border-color: var(--gold);
-    }
-
-    .featured-chip {
-      position: absolute;
-      top: -13px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: var(--gold);
-      color: var(--bg);
-      font-size: 10px;
-      font-weight: 800;
-      letter-spacing: 0.16em;
-      padding: 4px 16px;
-      border-radius: 999px;
-      white-space: nowrap;
-      text-transform: uppercase;
-    }
-
-    .plan-name {
-      font-size: 13px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.18em;
-      color: var(--text-muted);
-      margin-bottom: 6px;
-    }
-
-    .plan-price {
-      font-size: 42px;
-      font-weight: 900;
-      color: var(--text);
-      letter-spacing: -0.04em;
-      line-height: 1;
-      margin-bottom: 4px;
-    }
-
-    .plan-price sup {
-      font-size: 18px;
-      vertical-align: super;
-      letter-spacing: 0;
-      color: var(--gold);
-    }
-
-    .plan-period {
-      font-size: 13px;
-      color: var(--text-muted);
-      margin-bottom: 18px;
-    }
-
-    .plan-features {
-      list-style: none;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      margin-bottom: 22px;
-      border-top: 1px solid var(--border);
-      padding-top: 16px;
-    }
-
-    .plan-features li {
-      font-size: 13px;
-      color: var(--text-muted);
-      display: flex;
-      align-items: flex-start;
-      gap: 8px;
-      line-height: 1.5;
-    }
-
-    .plan-features li::before {
-      content: '✓';
-      color: var(--gold);
-      font-weight: 700;
-      flex-shrink: 0;
-    }
-
-    .plan-btn {
-      width: 100%;
-      padding: 11px;
-      border-radius: 999px;
-      font-weight: 700;
-      font-size: 12px;
-      letter-spacing: 0.08em;
-      cursor: pointer;
-      border: none;
-      font-family: inherit;
-      transition: all 0.2s;
-      text-align: center;
-      display: block;
-      text-transform: uppercase;
-    }
-
-    .plan-btn-primary {
-      background: var(--gold);
-      color: var(--bg);
-    }
-    .plan-btn-primary:hover { background: var(--gold-light); }
-
-    .plan-btn-outline {
-      background: transparent;
-      border: 1.5px solid var(--border);
-      color: var(--text);
-    }
-    .plan-btn-outline:hover { border-color: var(--gold); color: var(--gold); }
-
-    /* ── FAQ ── */
-    .faq { margin-top: 40px; }
-
-    .faq-item {
-      border-bottom: 1px solid var(--border);
-    }
-
-    .faq-q {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 16px 0;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      user-select: none;
-    }
-
-    .faq-q:hover { color: var(--gold); }
-
-    .faq-icon {
-      color: var(--gold);
-      font-size: 18px;
-      font-weight: 300;
-      line-height: 1;
-      flex-shrink: 0;
-      margin-left: 16px;
-      transition: transform 0.2s;
-    }
-
-    .faq-a {
-      display: none;
-      padding: 0 0 16px;
-      font-size: 13px;
-      color: var(--text-muted);
-      line-height: 1.7;
-    }
-
-    .faq-item.open .faq-a { display: block; }
-    .faq-item.open .faq-icon { transform: rotate(45deg); }
-
-    /* ── CONTACT ── */
-    .contact-bg {
-      background: var(--bg-surface);
-      border-top: 1px solid var(--border);
-    }
-
-    .contact-grid {
-      display: grid;
-      grid-template-columns: 1.1fr 1fr;
-      gap: 52px;
-      align-items: start;
-    }
-
-    .role-toggle {
-      display: flex;
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 999px;
-      padding: 4px;
-      margin-bottom: 20px;
-      gap: 4px;
-    }
-
-    .role-btn {
-      flex: 1;
-      padding: 8px;
-      border-radius: 999px;
-      font-size: 12px;
-      font-weight: 600;
-      border: none;
-      background: transparent;
-      color: var(--text-muted);
-      cursor: pointer;
-      font-family: inherit;
-      transition: all 0.2s;
-    }
-    .role-btn.active {
-      background: var(--gold);
-      color: var(--bg);
-    }
-
-    .form-group {
-      margin-bottom: 14px;
-    }
-
-    .form-label {
-      display: block;
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.14em;
-      margin-bottom: 5px;
-    }
-
-    .form-input {
-      width: 100%;
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      color: var(--text);
-      padding: 10px 12px;
-      border-radius: 8px;
-      font-size: 14px;
-      font-family: inherit;
-      outline: none;
-      transition: border-color 0.2s;
-      resize: vertical;
-      min-height: 40px;
-    }
-    .form-input:focus { border-color: var(--gold); }
-
-    .contact-detail {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 12px 0;
-      border-bottom: 1px solid var(--border);
-      font-size: 14px;
-    }
-
-    .contact-detail-label {
-      color: var(--text-muted);
-      font-size: 11px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.14em;
-      width: 70px;
-      flex-shrink: 0;
-    }
-
-    /* ── FOOTER ── */
-    footer {
-      background: var(--bg-surface);
-      border-top: 1px solid var(--border);
-      padding: 40px 0 22px;
-    }
-
-    .footer-grid {
-      display: grid;
-      grid-template-columns: 2fr 1fr 1fr 1fr;
-      gap: 32px;
-      margin-bottom: 32px;
-    }
-
-    .footer-brand-logo {
-      font-size: 24px;
-      font-weight: 900;
-      color: var(--gold);
-      letter-spacing: -0.04em;
-      margin-bottom: 6px;
-    }
-
-    .footer-brand-tag {
-      font-size: 12px;
-      color: var(--text-muted);
-      margin-bottom: 12px;
-      font-style: italic;
-    }
-
-    .footer-col h4 {
-      font-size: 11px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.18em;
-      color: var(--text-muted);
-      margin-bottom: 12px;
-    }
-
-    .footer-links {
-      list-style: none;
-      display: flex;
-      flex-direction: column;
-      gap: 7px;
-    }
-
-    .footer-links a {
-      font-size: 13px;
-      color: var(--text-muted);
-    }
-    .footer-links a:hover { color: var(--gold); }
-
-    .footer-bottom {
-      border-top: 1px solid var(--border);
-      padding-top: 16px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 12px;
-      color: var(--text-muted);
-    }
-
-    .footer-made {
-      border-top: 1px solid var(--border);
-      margin-top: 18px;
-      padding-top: 12px;
-      text-align: center;
-      font-size: 12px;
-      color: var(--text-muted);
-    }
-
-    /* ── RESPONSIVE ── */
-    @media (max-width: 768px) {
-      .nav-links { display: none; }
-      section { padding: 56px 0; }
-      .section-title { font-size: 26px; }
-      .hero { padding: 90px 0 60px; }
-      .hero h1 { font-size: 40px; letter-spacing: 0.04em; }
-      .stats-bar { flex-wrap: wrap; }
-      .stat-item { min-width: 50%; border-right: none; border-bottom: 1px solid var(--border); }
-      .for-grid { grid-template-columns: 1fr; }
-      .pricing-grid { grid-template-columns: 1fr; }
-      .contact-grid { grid-template-columns: 1fr; gap: 32px; }
-      .footer-grid { grid-template-columns: 1fr 1fr; }
-      .footer-bottom { flex-direction: column; gap: 8px; align-items: flex-start; }
-    }
-
-    /* ── SCROLLBAR ── */
-    ::-webkit-scrollbar { width: 6px; }
-    ::-webkit-scrollbar-track { background: var(--bg); }
-    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-    ::-webkit-scrollbar-thumb:hover { background: var(--gold-dark); }
-
-    @keyframes slideIn {
-      from { transform: translateY(16px); opacity: 0; }
-      to   { transform: translateY(0); opacity: 1; }
-    }
-
-    #toast {
-      animation: slideIn 0.25s ease;
-    }
-  </style>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LinX — Linking People Together</title>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: "Inter", sans-serif;
+            background: #0a0a0a;
+            color: #fff;
+            overflow-x: hidden;
+        }
+
+        /* Gold Accent */
+        :root {
+            --gold: #d4af37;
+        }
+
+        /* Smooth Fade */
+        .fade {
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeIn 1s ease forwards;
+        }
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* NAV */
+        nav {
+            width: 100%;
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: fixed;
+            top: 0;
+            z-index: 100;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(10px);
+        }
+        nav .logo {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--gold);
+            letter-spacing: 1px;
+        }
+        nav a {
+            color: #fff;
+            margin-left: 20px;
+            text-decoration: none;
+            font-size: 0.95rem;
+        }
+
+        /* HERO */
+        .hero {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 0 40px;
+            background: linear-gradient(180deg, #0a0a0a, #111);
+        }
+        .hero h1 {
+            font-size: 3.2rem;
+            max-width: 700px;
+            line-height: 1.2;
+        }
+        .hero h1 span {
+            color: var(--gold);
+        }
+        .hero p {
+            max-width: 600px;
+            margin-top: 20px;
+            font-size: 1.2rem;
+            opacity: 0.8;
+        }
+        .hero button {
+            margin-top: 40px;
+            padding: 14px 28px;
+            font-size: 1rem;
+            background: var(--gold);
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        /* SECTION */
+        section {
+            padding: 100px 40px;
+            max-width: 1100px;
+            margin: auto;
+        }
+        section h2 {
+            font-size: 2.2rem;
+            margin-bottom: 20px;
+            color: var(--gold);
+        }
+        section p {
+            opacity: 0.85;
+            line-height: 1.6;
+        }
+
+        /* SERVICES */
+        .services {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 30px;
+            margin-top: 40px;
+        }
+        .service-box {
+            background: #111;
+            padding: 30px;
+            border-radius: 10px;
+            border: 1px solid #222;
+            transition: 0.3s;
+        }
+        .service-box:hover {
+            border-color: var(--gold);
+            transform: translateY(-5px);
+        }
+        .service-box h3 {
+            color: var(--gold);
+            margin-bottom: 10px;
+        }
+
+        /* FOOTER */
+        footer {
+            padding: 40px;
+            text-align: center;
+            opacity: 0.6;
+            font-size: 0.9rem;
+        }
+    </style>
 </head>
+
 <body>
 
-<nav>
-  <div class="nav-logo">
-    <span>Lin</span><span>X</span>
-  </div>
-  <ul class="nav-links">
-    <li><a href="#how">How It Works</a></li>
-    <li><a href="#who">Who It's For</a></li>
-    <li><a href="#pricing">Pricing</a></li>
-    <li><a href="#faq">FAQ</a></li>
-    <li><a href="#contact">Contact</a></li>
-  </ul>
-  <a href="#contact" class="nav-cta">GET STARTED FREE</a>
-</nav>
+    <nav>
+        <div class="logo">LinX</div>
+        <div>
+            <a href="#services">Services</a>
+            <a href="#about">About</a>
+            <a href="#contact">Contact</a>
+        </div>
+    </nav>
 
-<section class="hero">
-  <div class="container">
-    <div class="hero-eyebrow">Est. 2024 — Canada's Contractor Network</div>
-    <h1><em>Lin</em>X</h1>
-    <p class="hero-sub">
-      Quiet automation for busy teams.<br>
-      SMS, CRM, and AI agents that just work.
-    </p>
-    <div class="hero-actions">
-      <a href="#contact" class="btn btn-primary">Post a Project Free</a>
-      <a href="#contact" class="btn btn-outline">Join as Contractor</a>
-    </div>
-
-    <div class="stats-bar">
-      <div class="stat-item">
-        <span class="stat-num">1,400+</span>
-        <div class="stat-lbl">Contractors</div>
-      </div>
-      <div class="stat-item">
-        <span class="stat-num">3,200+</span>
-        <div class="stat-lbl">Projects Posted</div>
-      </div>
-      <div class="stat-item">
-        <span class="stat-num">97%</span>
-        <div class="stat-lbl">Match Rate</div>
-      </div>
-      <div class="stat-item">
-        <span class="stat-num">4.9 ★</span>
-        <div class="stat-lbl">Avg Rating</div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section class="live-feed-section">
-  <div class="container">
-    <div class="live-header">
-      <div>
-        <div class="section-label">Real-Time Activity</div>
-        <h2 class="section-title" style="font-size:26px;margin-bottom:0">Live Project Feed</h2>
-      </div>
-      <span class="live-dot">LIVE</span>
-    </div>
-    <div class="live-grid">
-      <div class="live-card">
-        <div class="live-icon">🏠</div>
-        <div class="live-info">
-          <div class="live-title">Kitchen Renovation</div>
-          <div class="live-meta">Toronto, ON · CAD $22k–$30k · 2h ago</div>
-        </div>
-        <span class="badge badge-live" style="margin-left:auto;flex-shrink:0">LIVE</span>
-      </div>
-      <div class="live-card">
-        <div class="live-icon">⚡</div>
-        <div class="live-info">
-          <div class="live-title">Panel Upgrade — 200A</div>
-          <div class="live-meta">Calgary, AB · CAD $4,500 · 4h ago</div>
-        </div>
-        <span class="badge badge-new" style="margin-left:auto;flex-shrink:0">NEW</span>
-      </div>
-      <div class="live-card">
-        <div class="live-icon">🔧</div>
-        <div class="live-info">
-          <div class="live-title">Roof Repair — Shingles</div>
-          <div class="live-meta">Vancouver, BC · CAD $5,000 · 6h ago</div>
-        </div>
-        <span class="badge badge-hot" style="margin-left:auto;flex-shrink:0">HOT</span>
-      </div>
-      <div class="live-card">
-        <div class="live-icon">🚿</div>
-        <div class="live-info">
-          <div class="live-title">Bathroom Remodel</div>
-          <div class="live-meta">Ottawa, ON · CAD $12k–$18k · 8h ago</div>
-        </div>
-        <span class="badge badge-new" style="margin-left:auto;flex-shrink:0">NEW</span>
-      </div>
-      <div class="live-card">
-        <div class="live-icon">🌳</div>
-        <div class="live-info">
-          <div class="live-title">Backyard Landscaping</div>
-          <div class="live-meta">Barrie, ON · CAD $6,000 · 10h ago</div>
-        </div>
-        <span class="badge badge-live" style="margin-left:auto;flex-shrink:0">LIVE</span>
-      </div>
-      <div class="live-card">
-        <div class="live-icon">🏗️</div>
-        <div class="live-info">
-          <div class="live-title">Basement Finishing</div>
-          <div class="live-meta">Edmonton, AB · CAD $35k · 12h ago</div>
-        </div>
-        <span class="badge badge-hot" style="margin-left:auto;flex-shrink:0">HOT</span>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section id="how">
-  <div class="container" style="text-align:center">
-    <div class="section-label">Simple Process</div>
-    <h2 class="section-title">How LinX Works</h2>
-    <p class="section-sub" style="margin:0 auto">
-      From posting a project to shaking hands on a quote — LinX makes every step effortless.
-    </p>
-
-    <div class="steps">
-      <div class="step">
-        <div class="step-num">1</div>
-        <h3>Post Your Project</h3>
-        <p>Describe your job in 30 seconds — what needs doing, when, and your budget range. Free for homeowners. Always.</p>
-      </div>
-      <div class="step">
-        <div class="step-num">2</div>
-        <h3>Get Matched Instantly</h3>
-        <p>Our algorithm surfaces the best verified contractors in your city who are available and qualified for your job.</p>
-      </div>
-      <div class="step">
-        <div class="step-num">3</div>
-        <h3>Review Real Quotes</h3>
-        <p>Receive transparent quotes with no hidden fees. Read verified reviews from your actual neighbours, not strangers.</p>
-      </div>
-      <div class="step">
-        <div class="step-num">4</div>
-        <h3>Hire With Confidence</h3>
-        <p>Choose your contractor, agree on terms, and get the job done. Leave a review to help the next homeowner.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section id="who" class="for-bg">
-  <div class="container">
-    <div class="section-label">Built for Both Sides</div>
-    <h2 class="section-title">Who LinX Serves</h2>
-    <p class="section-sub">Whether you own a home or run a trade business, LinX is built specifically for you.</p>
-
-    <div class="for-grid">
-      <div class="for-card">
-        <div class="for-icon">🏡</div>
-        <div class="for-title">Homeowners</div>
-        <p class="for-desc">
-          Stop scrolling through sketchy listings. LinX gives you instant access to verified, local professionals who care about their reputation.
-        </p>
-        <ul class="for-features">
-          <li>Completely free — forever</li>
-          <li>Verified contractors only</li>
-          <li>Real reviews from real neighbours</li>
-          <li>Transparent quotes, no bidding wars</li>
-          <li>All trades: plumbers, electricians, roofers, landscapers</li>
-        </ul>
-      </div>
-      <div class="for-card">
-        <div class="for-icon">🔨</div>
-        <div class="for-title">Contractors</div>
-        <p class="for-desc">
-          Stop chasing leads. LinX sends you qualified homeowners in your city who are ready to hire right now — no bidding wars, no wasted time.
-        </p>
-        <ul class="for-features">
-          <li>Qualified leads delivered daily</li>
-          <li>CRM to track your entire pipeline</li>
-          <li>URL shortener with click analytics</li>
-          <li>EchoForge automation marketplace</li>
-          <li>Google Sheets sync for your data</li>
-        </ul>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section class="testimonials-bg">
-  <div class="container">
-    <div class="section-label">Client Stories</div>
-    <h2 class="section-title">What People Are Saying</h2>
-
-    <div class="testimonials-grid">
-      <div class="testimonial">
-        <div class="stars">★★★★★</div>
-        <p class="testimonial-body">
-          "I found a roofer in 10 minutes. Posted my project, got 3 quotes by the next morning. The contractor was verified and the work was done in two days. LinX is exactly what this industry needed."
-        </p>
-        <div class="testimonial-author">Jennifer M.</div>
-        <div class="testimonial-role">Homeowner · Barrie, ON</div>
-      </div>
-      <div class="testimonial">
-        <div class="stars">★★★★★</div>
-        <p class="testimonial-body">
-          "I went from 3 leads a month to 12 in my first 30 days on LinX. The CRM keeps everything organized and the automated follow-ups save me hours every week."
-        </p>
-        <div class="testimonial-author">Mike T.</div>
-        <div class="testimonial-role">Electrical Contractor · Calgary, AB</div>
-      </div>
-      <div class="testimonial">
-        <div class="stars">★★★★★</div>
-        <p class="testimonial-body">
-          "We'd been burned by contractors before — no-shows, inflated quotes. LinX's verification process gave us real confidence. Our kitchen renovation turned out beautifully."
-        </p>
-        <div class="testimonial-author">Sandra &amp; Dave K.</div>
-        <div class="testimonial-role">Homeowners · Toronto, ON</div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section id="pricing">
-  <div class="container">
-    <div class="section-label" style="text-align:center">Transparent Pricing</div>
-    <h2 class="section-title" style="text-align:center">Plans for Every Business</h2>
-    <p class="section-sub" style="text-align:center;margin:0 auto">
-      Homeowners are always free. Contractors choose the plan that fits their growth stage.
-    </p>
-
-    <div class="pricing-toggle">
-      <span>Monthly</span>
-      <div class="toggle-track" id="billingToggle">
-        <div class="toggle-thumb" id="toggleThumb"></div>
-      </div>
-      <span>Annual <span class="save-badge">Save 20%</span></span>
-    </div>
-
-    <div class="pricing-grid">
-      <div class="pricing-card">
-        <div class="plan-name">Starter</div>
-        <div class="plan-price">
-          <sup>$</sup><span class="price-val" data-monthly="29" data-annual="23">29</span>
-        </div>
-        <div class="plan-period">per month, billed <span class="billing-period">monthly</span></div>
-        <ul class="plan-features">
-          <li>100 shortened links</li>
-          <li>Basic click analytics — clicks &amp; countries</li>
-          <li>CRM up to 500 leads</li>
-          <li>Google Sheets sync</li>
-          <li>Browse &amp; buy automations</li>
-          <li>15% EchoForge commission</li>
-        </ul>
-        <a href="#contact" class="plan-btn plan-btn-outline">GET STARTED</a>
-      </div>
-
-      <div class="pricing-card featured">
-        <div class="featured-chip">MOST POPULAR</div>
-        <div class="plan-name">Pro</div>
-        <div class="plan-price">
-          <sup>$</sup><span class="price-val" data-monthly="79" data-annual="63">79</span>
-        </div>
-        <div class="plan-period">per month, billed <span class="billing-period">monthly</span></div>
-        <ul class="plan-features">
-          <li>Unlimited shortened links</li>
-          <li>Full analytics — devices, browsers, duration, referrers</li>
-          <li>Unlimited CRM leads</li>
-          <li>Google Sheets sync</li>
-          <li>Sell automations on EchoForge</li>
-          <li>Reduced commission (10%)</li>
-        </ul>
-        <a href="#contact" class="plan-btn plan-btn-primary">SUBSCRIBE NOW</a>
-      </div>
-
-      <div class="pricing-card">
-        <div class="plan-name">Enterprise</div>
-        <div class="plan-price">
-          <sup>$</sup><span class="price-val" data-monthly="199" data-annual="159">199</span>
-        </div>
-        <div class="plan-period">per month, billed <span class="billing-period">monthly</span></div>
-        <ul class="plan-features">
-          <li>Everything in Pro</li>
-          <li>API access for custom integrations</li>
-          <li>White-label link shortener (custom domain)</li>
-          <li>Bulk automation uploads</li>
-          <li>Lowest commission (5%)</li>
-          <li>Priority email support</li>
-        </ul>
-        <a href="#contact" class="plan-btn plan-btn-outline">CONTACT US</a>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section id="faq" style="background:var(--bg-surface);border-top:1px solid var(--border)">
-  <div class="container">
-    <div class="section-label">Got Questions?</div>
-    <h2 class="section-title">Frequently Asked Questions</h2>
-
-    <div class="faq">
-      <div class="faq-item">
-        <div class="faq-q">Is LinX really free for homeowners? <span class="faq-icon">+</span></div>
-        <div class="faq-a">
-          Yes — completely. Homeowners can post projects, receive quotes, read reviews, and hire contractors without ever paying a cent. LinX earns revenue through contractor subscriptions and EchoForge commissions.
-        </div>
-      </div>
-      <div class="faq-item">
-        <div class="faq-q">How are contractors verified? <span class="faq-icon">+</span></div>
-        <div class="faq-a">
-          Every contractor on LinX goes through a profile review process including business info, trade type, and service area. We encourage contractors to collect and display real reviews from past clients — you can see exactly who you're hiring.
-        </div>
-      </div>
-      <div class="faq-item">
-        <div class="faq-q">What trades does LinX cover? <span class="faq-icon">+</span></div>
-        <div class="faq-a">
-          LinX supports all major residential trades — plumbers, electricians, roofers, landscapers, general contractors, HVAC techs, painters, flooring installers, and more. If it's a home service, there's a contractor for it on LinX.
-        </div>
-      </div>
-      <div class="faq-item">
-        <div class="faq-q">What is EchoForge? <span class="faq-icon">+</span></div>
-        <div class="faq-a">
-          EchoForge is our built-in automation marketplace. Contractors can buy, remix, and sell workflow automations — from lead nurture sequences to social media schedulers. It's a marketplace for contractor business tools, built right into your dashboard.
-        </div>
-      </div>
-      <div class="faq-item">
-        <div class="faq-q">Can I cancel my subscription anytime? <span class="faq-icon">+</span></div>
-        <div class="faq-a">
-          Yes. All plans are month-to-month (or annual with a 20% discount). You can cancel anytime from your profile settings, and you'll keep access through the end of your billing period.
-        </div>
-      </div>
-      <div class="faq-item">
-        <div class="faq-q">What cities does LinX operate in? <span class="faq-icon">+</span></div>
-        <div class="faq-a">
-          LinX is live across Canada with initial focus on Ontario cities including Toronto, Barrie, Ottawa, and surrounding areas. We're expanding rapidly — contractors in any province are welcome to join and capture early market advantage.
-        </div>
-      </div>
-      <div class="faq-item">
-        <div class="faq-q">How does the URL shortener work? <span class="faq-icon">+</span></div>
-        <div class="faq-a">
-          Contractor subscribers get access to LinX's built-in URL shortener. Create short links for any destination URL (your profile, a quote page, a promotion), share them on social media or in SMS campaigns, and track click analytics including geographic data, device breakdown, and more — all from your dashboard.
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section id="contact" class="contact-bg">
-  <div class="container">
-    <div class="contact-grid">
-      <div>
-        <div class="section-label">Ready to Start?</div>
-        <div style="font-size:30px;font-weight:800;margin-bottom:10px">Get In Touch</div>
-        <p style="font-size:14px;color:var(--text-muted);margin-bottom:26px;line-height:1.7">
-          Whether you're a homeowner with a project or a contractor looking for quality leads — LinX is ready for you. Reach out and we'll get you set up in minutes.
-        </p>
-
-        <div class="contact-detail">
-          <span class="contact-detail-label">Phone</span>
-          <span>705-716-0803</span>
-        </div>
-        <div class="contact-detail">
-          <span class="contact-detail-label">Email</span>
-          <a href="mailto:Darrenethier991@gmail.com">Darrenethier991@gmail.com</a>
-        </div>
-        <div class="contact-detail">
-          <span class="contact-detail-label">Owner</span>
-          <span>Darren Ethier — Sole Proprietor</span>
-        </div>
-        <div class="contact-detail">
-          <span class="contact-detail-label">Platform</span>
-          <span>linxservices.ca</span>
-        </div>
-      </div>
-
-      <div>
-        <div class="role-toggle">
-          <button class="role-btn active" id="roleHomeowner">🏡 Homeowner</button>
-          <button class="role-btn" id="roleContractor">🔨 Contractor</button>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Your Name</label>
-          <input class="form-input" />
-        </div>
-        <div class="form-group">
-          <label class="form-label">Phone</label>
-          <input class="form-input" />
-        </div>
-        <div class="form-group">
-          <label class="form-label">Email</label>
-          <input class="form-input" type="email" />
-        </div>
-        <div class="form-group" id="projectField">
-          <label class="form-label">Describe Your Project</label>
-          <textarea class="form-input"></textarea>
-        </div>
-        <div class="form-group" id="tradeField" style="display:none">
-          <label class="form-label">Your Trade / Service</label>
-          <input class="form-input" />
-        </div>
-        <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:8px">
-          SEND MESSAGE
+    <div class="hero fade">
+        <h1>Automation, Intelligence & Connection — <span>All in One Ecosystem</span></h1>
+        <p>LinX is the 2026 automation-first SaaS ecosystem built to link people, businesses, and workflows together with real-time intelligence, conflict detection, and seamless communication.</p>
+        <button onclick="document.getElementById('contact').scrollIntoView({behavior:'smooth'})">
+            Get Started
         </button>
-        <p style="font-size:11px;color:var(--text-muted);text-align:center;margin-top:8px">
-          By submitting you agree to receive follow-up from LinX. Unsubscribe anytime.
+    </div>
+
+    <section id="about" class="fade">
+        <h2>What is LinX?</h2>
+        <p>
+            LinX is a unified automation ecosystem designed to connect people, services, and data streams into one intelligent hub.  
+            Built for speed, reliability, and real-world operations, LinX powers communication pipelines, agent-driven automation, conflict detection, and service coordination.
         </p>
-      </div>
-    </div>
-  </div>
-</section>
+    </section>
 
-<footer>
-  <div class="container">
-    <div class="footer-grid">
-      <div>
-        <div class="footer-brand-logo">LinX</div>
-        <div class="footer-brand-tag">"Linking People Together" — Est. 2024</div>
-        <p style="font-size:13px;color:var(--text-muted);line-height:1.7;max-width:280px">
-          Canada's Contractor Network. Built to connect homeowners with verified trades people across the country.
-        </p>
-      </div>
-      <div class="footer-col">
-        <h4>Platform</h4>
-        <ul class="footer-links">
-          <li><a href="#how">How It Works</a></li>
-          <li><a href="#who">For Homeowners</a></li>
-          <li><a href="#who">For Contractors</a></li>
-          <li><a href="#pricing">Pricing</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h4>Features</h4>
-        <ul class="footer-links">
-          <li><a href="#who">Lead Matching</a></li>
-          <li><a href="#who">CRM Pipeline</a></li>
-          <li><a href="#who">URL Shortener</a></li>
-          <li><a href="#who">EchoForge</a></li>
-        </ul>
-      </div>
-      <div class="footer-col">
-        <h4>Company</h4>
-        <ul class="footer-links">
-          <li><a href="#faq">FAQ</a></li>
-          <li><a href="#contact">Contact</a></li>
-          <li><a href="mailto:Darrenethier991@gmail.com">Support</a></li>
-          <li><a href="#contact">Partner With Us</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <span>© 2024–2025 LinX — Canada's Contractor Network. Sole Proprietor: Darren Ethier.</span>
-      <span>linxservices.ca</span>
-    </div>
-    <div class="footer-made">Made with IBM Bob</div>
-  </div>
-</footer>
+    <section id="services" class="fade">
+        <h2>Core Services</h2>
 
-<div id="cursor-ring"></div>
-<div id="toast" style="position:fixed;bottom:24px;right:24px;background:var(--bg-card);border:1px solid var(--gold);border-radius:8px;padding:12px 18px;font-size:13px;z-index:9999;display:none;max-width:320px"></div>
+        <div class="services">
+            <div class="service-box">
+                <h3>Automation Pipelines</h3>
+                <p>Real-time workflows powered by Cloudflare Workers, KV, and AI routing.</p>
+            </div>
 
-<script>
-  // ── CUSTOM CURSOR ──────────────────────────────────────────────────────────
-  const ring = document.getElementById("cursor-ring");
-  document.addEventListener("mousemove", (e) => {
-    ring.style.left = `${e.clientX}px`;
-    ring.style.top  = `${e.clientY}px`;
-  });
+            <div class="service-box">
+                <h3>SMS Intelligence</h3>
+                <p>Twilio → Supabase → LinX Worker pipelines with smart routing and analysis.</p>
+            </div>
 
-  // ── STAR FIELD ─────────────────────────────────────────────────────────────
-  for (let i = 0; i < 45; i++) {
-    const star = document.createElement("div");
-    star.className = "star";
-    star.style.left           = Math.random() * window.innerWidth + "px";
-    star.style.top            = Math.random() * window.innerHeight + "px";
-    star.style.animationDelay = Math.random() * 4 + "s";
-    document.body.appendChild(star);
-  }
+            <div class="service-box">
+                <h3>Conflict Detection</h3>
+                <p>Live monitoring modules that detect inconsistencies, errors, and operational conflicts.</p>
+            </div>
 
-  // ── PRICING TOGGLE ─────────────────────────────────────────────────────────
-  let isAnnual = false;
+            <div class="service-box">
+                <h3>Agent Framework</h3>
+                <p>AI-driven agents that execute tasks, monitor systems, and support operations.</p>
+            </div>
+        </div>
+    </section>
 
-  function updatePricing() {
-    document.querySelectorAll(".price-val").forEach((el) => {
-      el.textContent = isAnnual ? el.dataset.annual : el.dataset.monthly;
-    });
-    document.querySelectorAll(".billing-period").forEach((el) => {
-      el.textContent = isAnnual ? "annually" : "monthly";
-    });
-    const thumb = document.getElementById("toggleThumb");
-    if (thumb) thumb.style.left = isAnnual ? "23px" : "3px";
-  }
+    <section id="contact" class="fade">
+        <h2>Contact</h2>
+        <p>Email: <strong>darrenethier991@gmail.com</strong></p>
+        <p>LinX — Linking People Together</p>
+    </section>
 
-  const billingToggle = document.getElementById("billingToggle");
-  if (billingToggle) {
-    billingToggle.addEventListener("click", () => {
-      isAnnual = !isAnnual;
-      updatePricing();
-    });
-  }
-
-  // ── FAQ ACCORDION ──────────────────────────────────────────────────────────
-  document.querySelectorAll(".faq-q").forEach((q) => {
-    q.addEventListener("click", () => {
-      const item = q.closest(".faq-item");
-      const isOpen = item.classList.contains("open");
-      document.querySelectorAll(".faq-item.open").forEach((i) => i.classList.remove("open"));
-      if (!isOpen) item.classList.add("open");
-    });
-  });
-
-  // ── CONTACT FORM — ROLE TOGGLE ─────────────────────────────────────────────
-  const roleHomeowner  = document.getElementById("roleHomeowner");
-  const roleContractor = document.getElementById("roleContractor");
-  const projectField   = document.getElementById("projectField");
-  const tradeField     = document.getElementById("tradeField");
-
-  function setRole(role) {
-    if (role === "homeowner") {
-      roleHomeowner.classList.add("active");
-      roleContractor.classList.remove("active");
-      if (projectField) projectField.style.display = "";
-      if (tradeField)   tradeField.style.display   = "none";
-    } else {
-      roleContractor.classList.add("active");
-      roleHomeowner.classList.remove("active");
-      if (projectField) projectField.style.display = "none";
-      if (tradeField)   tradeField.style.display   = "";
-    }
-  }
-
-  if (roleHomeowner)  roleHomeowner.addEventListener("click",  () => setRole("homeowner"));
-  if (roleContractor) roleContractor.addEventListener("click", () => setRole("contractor"));
-
-  // ── CONTACT FORM — SUBMISSION ──────────────────────────────────────────────
-  const sendBtn = document.querySelector("#contact .btn-primary");
-  if (sendBtn) {
-    sendBtn.addEventListener("click", () => {
-      const inputs  = document.querySelectorAll("#contact .form-input");
-      const name    = inputs[0]?.value?.trim();
-      const phone   = inputs[1]?.value?.trim();
-      const email   = inputs[2]?.value?.trim();
-      const message = inputs[3]?.value?.trim();
-
-      if (!name || !email) {
-        showToast("Please fill in your name and email.");
-        return;
-      }
-
-      sendBtn.textContent = "SENDING…";
-      sendBtn.disabled    = true;
-
-      setTimeout(() => {
-        sendBtn.textContent = "SEND MESSAGE";
-        sendBtn.disabled    = false;
-        inputs.forEach((el) => { el.value = ""; });
-        showToast("✓ Message sent! We'll be in touch shortly.");
-      }, 800);
-    });
-  }
-
-  // ── TOAST HELPER ──────────────────────────────────────────────────────────
-  function showToast(msg) {
-    const toast = document.getElementById("toast");
-    if (!toast) return;
-    toast.textContent   = msg;
-    toast.style.display = "block";
-    clearTimeout(toast._timeout);
-    toast._timeout = setTimeout(() => { toast.style.display = "none"; }, 4000);
-  }
-
-  // ── NAV SCROLL EFFECT ─────────────────────────────────────────────────────
-  const nav = document.querySelector("nav");
-  if (nav) {
-    window.addEventListener("scroll", () => {
-      nav.style.background = window.scrollY > 80
-        ? "rgba(5,5,7,0.98)"
-        : "rgba(5,5,7,0.92)";
-    }, { passive: true });
-  }
-
-  // ── LIVE FEED — ROTATE CARDS ──────────────────────────────────────────────
-  const liveCards = document.querySelectorAll(".live-card");
-  if (liveCards.length > 0) {
-    let lastIdx = -1;
-    setInterval(() => {
-      if (lastIdx >= 0) {
-        const prev = liveCards[lastIdx].querySelector(".badge");
-        if (prev && prev._originalText) {
-          prev.textContent  = prev._originalText;
-          prev.className    = `badge ${prev._originalClass}`;
-        }
-      }
-      const idx   = Math.floor(Math.random() * liveCards.length);
-      const badge = liveCards[idx].querySelector(".badge");
-      if (badge) {
-        badge._originalText  = badge.textContent;
-        badge._originalClass = badge.className.replace("badge ", "");
-        badge.textContent = "LIVE";
-        badge.className   = "badge badge-live";
-      }
-      lastIdx = idx;
-    }, 6000);
-  }
-
-  // ── STAT COUNTER ANIMATION ────────────────────────────────────────────────
-  function animateCounter(el) {
-    const raw = el.querySelector(".stat-num");
-    if (!raw || raw._animated) return;
-    raw._animated = true;
-
-    const text     = raw.textContent.trim();
-    const numMatch = text.match(/[\d,]+/);
-    if (!numMatch) return;
-
-    const target   = parseInt(numMatch[0].replace(/,/g, ""));
-    const suffix   = text.replace(numMatch[0], "");
-    const prefix   = text.slice(0, text.indexOf(numMatch[0]));
-    const duration = 1200;
-    const start    = performance.now();
-
-    function tick(now) {
-      const progress = Math.min((now - start) / duration, 1);
-      const eased    = 1 - Math.pow(1 - progress, 3);
-      const current  = Math.floor(eased * target);
-      raw.textContent = prefix + current.toLocaleString() + suffix;
-      if (progress < 1) requestAnimationFrame(tick);
-      else raw.textContent = text;
-    }
-    requestAnimationFrame(tick);
-  }
-
-  const statObserver = new IntersectionObserver((entries) => {
-    entries.forEach((e) => { if (e.isIntersecting) animateCounter(e.target); });
-  }, { threshold: 0.5 });
-
-  document.querySelectorAll(".stat-item").forEach((el) => statObserver.observe(el));
-</script>
+    <footer>
+        © 2026 LinX — All Rights Reserved
+    </footer>
 
 </body>
 </html>
