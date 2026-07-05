@@ -1,120 +1,25 @@
 {
-  // wrangler.jsonc — LinX production Workers configuration
-  // Docs: https://developers.cloudflare.com/workers/wrangler/configuration/
-  //
-  // Three workers, one config file using [env] overrides.
-  // Default entry = api.js
-  //
-  // Deploy commands:
-  //   wrangler deploy                  → linx-api (production)
-  //   wrangler deploy --env sms        → linx-sms
-  //   wrangler deploy --env ai         → linx-ai-gateway
-  //   wrangler dev                     → local dev for api.js
-  //   wrangler dev --env sms           → local dev for sms.js
-  //   wrangler dev --env ai            → local dev for ai-gateway.js
-
+  "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "linx-api",
-  "compatibility_date": "2024-09-23",
-  "main": "workers/api.js",
-  "workers_dev": false,
+  "main": "workers/api/index.js",
+  "compatibility_date": "2025-01-01",
 
-  // ── KV Namespaces ──────────────────────────────────────────────────────────
-  // Shared across all three workers — same namespace binding name "LINX_KV"
-  // Create: wrangler kv namespace create LINX_KV
-  // Then replace the IDs below.
-  "kv_namespaces": [
+  "account_id": "d4a4ddeeb9c43fe4b50a48143ec0c4e3",
+
+  "vars": {
+    "ADMIN_USERNAME": "admin"
+  },
+
+  "d1_databases": [
     {
-      "binding":    "LINX_KV",
-      "id":         "f34be72d11804233afda93230956946f",
-      "preview_id": "f34be72d11804233afda93230956946f"
+      "binding": "DB",
+      "database_name": "linx-db",
+      "database_id": "8145e238-53cb-4a95-b9d3-bc71de967678",
+      "migrations_dir": "./workers/migrations"
     }
   ],
 
-  // ── Workers AI (free tier — no billing unless usage exceeds free quota) ───
-  "ai": {
-    "binding": "AI"
-  },
-
-  // ── Cron Triggers ──────────────────────────────────────────────────────────
-  // Used by schedule_followup.js runCron() to dispatch pending follow-ups.
-  // This runs on the DEFAULT worker (api.js) which must expose a scheduled handler.
-  // Add `scheduled(event, env, ctx)` export to api.js to activate.
-  "triggers": {
-    "crons": [
-      "0 * * * *"
-    ]
-  },
-
-  // ── Secrets (set via CLI — never commit real values) ──────────────────────
-  // Run once per worker environment:
-  //
-  //   wrangler secret put SUPABASE_URL
-  //   wrangler secret put SUPABASE_ANON_KEY
-  //   wrangler secret put SUPABASE_SERVICE_KEY
-  //   wrangler secret put API_INTERNAL_TOKEN
-  //   wrangler secret put AI_GATEWAY_URL          --env ai   (self-referential on ai worker)
-  //   wrangler secret put LINX_ECHO_URL
-  //   wrangler secret put LINX_ECHO_SECRET
-  //   wrangler secret put TWILIO_ACCOUNT_SID      --env sms
-  //   wrangler secret put TWILIO_AUTH_TOKEN       --env sms
-  //   wrangler secret put TWILIO_FROM_NUMBER      --env sms
-  //   wrangler secret put API_URL                 --env sms
-  //   wrangler secret put AI_GATEWAY_URL          --env sms
-  //   wrangler secret put SMS_WORKER_URL          (set on api + ai workers)
-
-  // ── Environment: production (api.js) ─────────────────────────────────────
-  "env": {
-    "production": {
-      "name":         "linx-api",
-      "main":         "workers/api.js",
-      "workers_dev":  false,
-      "routes": [
-        { "pattern": "api.linxservices.ca/*", "zone_name": "linxservices.ca" }
-      ],
-      "kv_namespaces": [
-        {
-          "binding":    "LINX_KV",
-          "id":         "f34be72d11804233afda93230956946f"
-        }
-      ],
-      "ai": { "binding": "AI" },
-      "triggers": {
-        "crons": ["0 * * * *"]
-      }
-    },
-
-    // ── Environment: sms (sms.js) ───────────────────────────────────────────
-    "sms": {
-      "name":         "linx-sms",
-      "main":         "workers/sms.js",
-      "workers_dev":  false,
-      "routes": [
-        { "pattern": "sms.linxservices.ca/*", "zone_name": "linxservices.ca" }
-      ],
-      "kv_namespaces": [
-        {
-          "binding":    "LINX_KV",
-          "id":         "f34be72d11804233afda93230956946f"
-        }
-      ]
-      // No AI binding needed — sms.js calls ai-gateway over HTTP
-    },
-
-    // ── Environment: ai (ai-gateway.js) ────────────────────────────────────
-    "ai": {
-      "name":         "linx-ai-gateway",
-      "main":         "workers/ai-gateway.js",
-      "workers_dev":  false,
-      "routes": [
-        { "pattern": "ai.linxservices.ca/*", "zone_name": "linxservices.ca" }
-      ],
-      "kv_namespaces": [
-        {
-          "binding":    "LINX_KV",
-          "id":         "f34be72d11804233afda93230956946f"
-        }
-      ],
-      "ai": { "binding": "AI" }
-    }
+  "observability": {
+    "enabled": true
   }
 }
