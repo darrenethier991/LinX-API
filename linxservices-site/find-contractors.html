@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en-CA">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Find Contractors — LinX</title>
+  <meta name="description" content="Browse verified contractors across Simcoe County — rated, reviewed, and ready to work."/>
+  <link rel="stylesheet" href="css/app.css"/>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar__inner">
+    <a class="brand" href="index.html">
+      <span class="brand__dot"></span>
+      <span class="brand__text">LinX</span>
+    </a>
+    <button class="topbar__toggle" id="nav-toggle" aria-expanded="false" aria-controls="topbar-nav">☰</button>
+    <nav class="topbar__nav" id="topbar-nav">
+      <a href="index.html">Home</a>
+      <a href="find-contractors.html" class="active">Find Contractors</a>
+      <a href="pricing.html">For Contractors</a>
+      <a href="contact.html">Contact</a>
+      <a href="post-job.html" class="btn btn--gold btn--sm">Post a Job — Free</a>
+    </nav>
+  </div>
+</header>
+
+<section class="section">
+  <div class="shell">
+
+    <div class="section-head">
+      <p class="eyebrow">Directory</p>
+      <h1 class="section-title">Find Contractors</h1>
+      <p class="section-sub">Browse verified contractors across Simcoe County — rated, reviewed, and ready to work.</p>
+    </div>
+
+    <!-- Search & filter bar -->
+    <div class="card" style="display:flex;flex-wrap:wrap;gap:.8rem;align-items:center;margin-bottom:1.4rem;padding:1rem 1.2rem;">
+      <div style="position:relative;flex:1;min-width:200px;">
+        <span style="position:absolute;left:.9rem;top:50%;transform:translateY(-50%);color:var(--white-35);">🔍</span>
+        <input class="form-input" id="search-input" type="search" placeholder="Search by name or trade…" style="padding-left:2.4rem;" oninput="filterContractors()"/>
+      </div>
+      <select class="form-select" id="filter-trade" style="max-width:190px;" onchange="filterContractors()">
+        <option value="">All Trades</option>
+      </select>
+      <select class="form-select" id="filter-city" style="max-width:170px;" onchange="filterContractors()">
+        <option value="">All of Simcoe Co.</option>
+      </select>
+      <select class="form-select" id="filter-rating" style="max-width:150px;" onchange="filterContractors()">
+        <option value="">Any Rating</option>
+        <option value="4.5">4.5+ stars</option>
+        <option value="4">4.0+ stars</option>
+        <option value="3">3.0+ stars</option>
+      </select>
+      <label style="display:flex;align-items:center;gap:.4rem;font-size:.83rem;color:var(--white-35);cursor:pointer;">
+        <input type="checkbox" id="filter-online" style="accent-color:var(--gold);" onchange="filterContractors()"/>
+        Online now
+      </label>
+    </div>
+
+    <div style="font-size:.83rem;color:var(--white-35);margin-bottom:1rem;" id="results-count"></div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1rem;" id="contractor-grid"><!-- Rendered by JS --></div>
+
+    <!-- Empty state -->
+    <div id="empty-state" style="display:none;text-align:center;padding:3rem;color:var(--white-35);">
+      <div style="font-size:3rem;margin-bottom:.8rem;">🔍</div>
+      <div style="font-family:var(--font-head);font-size:1rem;color:var(--white-60);margin-bottom:.4rem;">No contractors found</div>
+      <div style="font-size:.85rem;">Try adjusting your filters or <a href="post-job.html">post a job</a> to get quotes.</div>
+    </div>
+
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="shell">
+    <div class="footer__legal" style="border-top:none;padding-top:0;">
+      <span>© <span class="js-year">2026</span> LinX · Darren Ethier, Sole Proprietor · Barrie, Ontario</span>
+      <span><a href="index.html" style="color:inherit;">Home</a> · <a href="post-job.html" style="color:inherit;">Post a Job</a> · <a href="pricing.html" style="color:inherit;">Contractor Plans</a></span>
+    </div>
+  </div>
+</footer>
+
+<script src="js/app.js"></script>
+<script>
+  if (typeof CONTRACTORS === 'undefined') {
+    document.getElementById('contractor-grid').innerHTML =
+      '<div class="card" style="grid-column:1/-1;color:var(--red);">⚠️ <strong>js/app.js failed to load.</strong> Deploy the full site folder (css/, js/, and all .html files) with the structure intact.</div>';
+    throw new Error('[LinX:E-ASSET-404] js/app.js not loaded — CONTRACTORS unavailable. Verify /js/app.js exists at the deployed root.');
+  }
+  // Populate filter selects from the shared single source of truth
+  const tradeSel = document.getElementById('filter-trade');
+  const citySel  = document.getElementById('filter-city');
+  TRADES.forEach(t => tradeSel.add(new Option(t, t)));
+  CITIES.forEach(c => citySel.add(new Option(c, c)));
+
+  // Preselect trade from ?trade= (links from the homepage trade grid)
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('trade') && TRADES.includes(params.get('trade'))) {
+    tradeSel.value = params.get('trade');
+  }
+
+  function renderContractors(list) {
+    const grid  = document.getElementById('contractor-grid');
+    const empty = document.getElementById('empty-state');
+    const count = document.getElementById('results-count');
+    if (list.length === 0) {
+      grid.innerHTML = '';
+      empty.style.display = 'block';
+      count.textContent = 'No results';
+      return;
+    }
+    empty.style.display = 'none';
+    count.textContent = `Showing ${list.length} contractor${list.length !== 1 ? 's' : ''}`;
+    grid.innerHTML = list.map(contractorCard).join('');
+  }
+
+  function filterContractors() {
+    const q     = document.getElementById('search-input').value.toLowerCase();
+    const trade = tradeSel.value;
+    const city  = citySel.value;
+    const minR  = parseFloat(document.getElementById('filter-rating').value) || 0;
+    const onlineOnly = document.getElementById('filter-online').checked;
+    renderContractors(CONTRACTORS.filter(c =>
+      (!q || c.name.toLowerCase().includes(q) || c.trade.toLowerCase().includes(q)) &&
+      (!trade || c.trade === trade) &&
+      (!city || c.city === city) &&
+      (c.rating >= minR) &&
+      (!onlineOnly || c.online)
+    ));
+  }
+
+  filterContractors();
+</script>
+</body>
+</html>
