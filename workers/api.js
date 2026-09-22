@@ -3,10 +3,11 @@
  * LinX — Primary API Gateway Worker
  *
  * All requests pass through JWT auth middleware first.
- * Public (unauthenticated) routes are explicitly whitelisted.
+ * Public (unauthenticated) routes are explicitly whitelisted (method-aware).
  *
- * Routes:
+ * Public routes:
  *   GET  /health                      → liveness + version
+ *   POST /api/contacts                → public lead intake (rate-limited + validated)
  *
  *   ── CRM — contacts ──
  *   POST   /api/contacts              → upsert contact
@@ -39,10 +40,16 @@
  */
 
 const JSON_HEADERS = { "Content-Type": "application/json" };
-const VERSION      = "1.1.0";
+const VERSION      = "1.2.0";
 
-// Routes that skip JWT auth entirely
-const PUBLIC_ROUTES = new Set(["/health"]);
+// Routes that skip JWT auth entirely (method-aware).
+// POST /api/contacts is the public lead-intake endpoint used by the website
+// contact form. Unauthenticated submissions are rate-limited per IP and pass
+// strict validation inside handleCreateContact instead of JWT auth.
+const PUBLIC_ROUTES = new Set([
+  "GET /health",
+  "POST /api/contacts",
+]);
 
 // ---------------------------------------------------------------------------
 // Entry point
@@ -57,7 +64,7 @@ export default {
 
     try {
       // ── Auth middleware ──────────────────────────────────────────────────
-      if (!PUBLIC_ROUTES.has(url.pathname)) {
+      if (!PUBLIC_ROUTES.has(`${method} ${url.pathname}`)) {
         const authError = await authenticate(request, env);
         if (authError) return authError;
       }
@@ -70,7 +77,7 @@ export default {
 
       // CRM — contacts
       if (url.pathname === "/api/contacts") {
-        if (method === "POST") return handleCreateContact(request, env);
+        if (method === "POST") return handleCreateContact(request, env, ctx);
         if (method === "GET")  return handleListContacts(request, env);
       }
 
@@ -260,20 +267,51 @@ async function authenticate(request, env) {
 // CRM — contacts
 // ---------------------------------------------------------------------------
 
-async function handleCreateContact(request, env) {
-  const body = await request.json();
-  if (!body.email) return err(400, "email is required");
+async function handleCreateContact(request, env, ctx) {
+  const isPublic = !request._user; // no JWT → came through the public lead-intake route
+
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return err(400, "Invalid JSON body");
+  }
+  if (!body || typeof body !== "object") return err(400, "Invalid JSON body");
+
+  // ── Rate limit public submissions: 10/hour per IP (KV fixed window) ────────
+  if (isPublic) {
+    const ip = request.headers.get("cf-connecting-ip") ?? "unknown";
+    const limited = await checkRateLimit(env, `contact-create:${ip}`, 10, 3600);
+    if (limited) return err(429, "Too many requests — please try again later");
+  }
+
+  // ── Validation ─────────────────────────────────────────────────────────────
+  const email = String(body.email ?? "").trim().toLowerCase();
+  if (!email) return err(400, "email is required");
+  if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return err(400, "email is invalid");
+  }
+
+  const str = (v, max) => {
+    if (v == null) return null;
+    const s = String(v).trim().slice(0, max);
+    return s.length ? s : null;
+  };
+
+  const name  = str(body.name, 100);
+  const phone = str(body.phone, 30);
+  const notes = str(body.notes, 2000);
 
   const payload = {
-    email:      body.email,
-    name:       body.name       ?? null,
-    phone:      body.phone      ?? null,
-    org_id:     body.org_id     ?? request._user?.org_id ?? null,
-    source:     body.source     ?? "api",
-    tags:       body.tags       ?? [],
-    notes:      body.notes      ?? null,
-    lead_score: body.lead_score ?? null,
-    meta:       body.meta       ?? {},
+    email,
+    name,
+    phone,
+    org_id:     isPublic ? null : (body.org_id ?? request._user?.org_id ?? null),
+    source:     isPublic ? "web" : (str(body.source, 50) ?? "api"),
+    tags:       isPublic ? [] : (Array.isArray(body.tags) ? body.tags.map(String).slice(0, 20) : []),
+    notes,
+    lead_score: isPublic ? null : (Number.isFinite(body.lead_score) ? body.lead_score : null),
+    meta:       body.meta && typeof body.meta === "object" ? body.meta : {},
     created_by: request._user?.id ?? null,
   };
 
@@ -281,6 +319,28 @@ async function handleCreateContact(request, env) {
   if (!res.ok) return err(res.status, await res.text());
 
   const [contact] = await res.json();
+
+  // ── Post-create side effects (never fail the request) ─────────────────────
+  // 1. Enqueue crm.contact.created on the KV event bus so EVENT_ROUTING stays
+  //    truthful for any current/future workflow consumers.
+  // 2. Send the welcome SMS directly when we have a phone number. (There is
+  //    currently no workflow runner consuming the event bus, so the
+  //    send_welcome_sms workflow alone cannot fire.)
+  try {
+    await enqueueEvent(env, {
+      type:    "crm.contact.created",
+      source:  isPublic ? "web" : "api",
+      payload: { contactId: contact?.id ?? null, email, phone },
+    });
+
+    const digits = (phone ?? "").replace(/\D/g, "");
+    if (digits.length >= 7 && digits.length <= 15) {
+      ctx.waitUntil(sendWelcomeSms(env, phone, contact?.id ?? null));
+    }
+  } catch {
+    // Side effects must never break contact creation
+  }
+
   return ok(contact, 201);
 }
 
@@ -562,6 +622,81 @@ async function handleGetUsage(request, env) {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+// Fixed-window rate limiter backed by KV. Returns true when the caller is
+// over the limit. Fails open (returns false) when KV is unavailable.
+async function checkRateLimit(env, key, limit, windowSec) {
+  if (!env.LINX_KV) return false;
+  try {
+    const kvKey = `ratelimit:${key}`;
+    const now   = Date.now();
+    const rec   = await env.LINX_KV.get(kvKey, { type: "json" });
+
+    if (!rec || now > rec.resetAt) {
+      await env.LINX_KV.put(
+        kvKey,
+        JSON.stringify({ count: 1, resetAt: now + windowSec * 1000 }),
+        { expirationTtl: windowSec + 60 }
+      );
+      return false;
+    }
+    if (rec.count >= limit) return true;
+
+    await env.LINX_KV.put(
+      kvKey,
+      JSON.stringify({ count: rec.count + 1, resetAt: rec.resetAt }),
+      { expirationTtl: windowSec + 60 }
+    );
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+// Write an event onto the KV event bus (same shape as handleEnqueueEvent).
+async function enqueueEvent(env, { type, source, payload }) {
+  if (!env.LINX_KV || !type) return;
+  const event = {
+    type,
+    payload:    payload ?? {},
+    source:     source  ?? "api",
+    enqueuedAt: Date.now(),
+    routes_to:  EVENT_ROUTING[type] ?? [],
+  };
+  await env.LINX_KV.put(
+    `event:${type}:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`,
+    JSON.stringify(event),
+    { expirationTtl: 86400 }
+  );
+}
+
+const WELCOME_SMS =
+  "Hi! Thanks for reaching out to LinX — Canada's Contractor Network. " +
+  "We'll be in touch shortly. Reply STOP to opt out.";
+
+// Send the welcome SMS via the SMS worker. The sms worker honours opt-outs
+// itself; failures are swallowed so contact creation never breaks.
+async function sendWelcomeSms(env, phone, contactId) {
+  try {
+    const smsUrl = env.SMS_WORKER_URL ?? env.API_URL;
+    if (!smsUrl) return;
+    await fetch(`${smsUrl}/sms/send`, {
+      method:  "POST",
+      headers: {
+        "Content-Type":  "application/json",
+        Authorization:  `Bearer ${env.API_INTERNAL_TOKEN ?? ""}`,
+      },
+      body: JSON.stringify({
+        to:             phone,
+        body:           WELCOME_SMS,
+        conversationId: contactId,
+      }),
+      signal: AbortSignal.timeout(15_000),
+    });
+  } catch {
+    // Swallowed — SMS failure must not affect the API response
+  }
+}
 
 function supabaseFetch(env, method, path, body, useServiceKey = false) {
   const key = useServiceKey

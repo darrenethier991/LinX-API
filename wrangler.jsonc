@@ -1,10 +1,30 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "linx-api",
-  "main": "workers/api/index.js",
+  // FIXED: was "workers/api/index.js" (does not exist) — the real entry is workers/api.js
+  "main": "workers/api.js",
   "compatibility_date": "2025-01-01",
+  "workers_dev": false,
 
   "account_id": "d4a4ddeeb9c43fe4b50a48143ec0c4e3",
+
+  "routes": [
+    { "pattern": "api.linxservices.ca/*", "zone_name": "linxservices.ca" }
+  ],
+
+  "kv_namespaces": [
+    {
+      "binding": "LINX_KV",
+      "id": "f34be72d11804233afda93230956946f",
+      "preview_id": "f34be72d11804233afda93230956946f"
+    }
+  ],
+
+  "ai": { "binding": "AI" },
+
+  "triggers": {
+    "crons": ["0 * * * *"]
+  },
 
   "vars": {
     "ADMIN_USERNAME": "admin"
@@ -21,5 +41,40 @@
 
   "observability": {
     "enabled": true
+  },
+
+  // FIXED: added env.sms / env.ai so `wrangler deploy --env sms` works
+  "env": {
+    "sms": {
+      "name": "linx-sms",
+      "main": "workers/sms.js",
+      "workers_dev": false,
+      "routes": [
+        { "pattern": "sms.linxservices.ca/*", "zone_name": "linxservices.ca" }
+      ],
+      "kv_namespaces": [
+        {
+          "binding": "LINX_KV",
+          "id": "f34be72d11804233afda93230956946f",
+          "preview_id": "f34be72d11804233afda93230956946f"
+        }
+      ]
+    },
+    "ai": {
+      "name": "linx-ai-gateway",
+      "main": "workers/ai-gateway.js",
+      "workers_dev": false,
+      "routes": [
+        { "pattern": "ai.linxservices.ca/*", "zone_name": "linxservices.ca" }
+      ],
+      "kv_namespaces": [
+        {
+          "binding": "LINX_KV",
+          "id": "f34be72d11804233afda93230956946f",
+          "preview_id": "f34be72d11804233afda93230956946f"
+        }
+      ],
+      "ai": { "binding": "AI" }
+    }
   }
 }

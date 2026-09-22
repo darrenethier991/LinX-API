@@ -89,6 +89,17 @@ export default {
 // ---------------------------------------------------------------------------
 
 async function handleSend(request, env, ctx) {
+  // Service-to-service auth: the API worker and workflows authenticate with
+  // API_INTERNAL_TOKEN. Without this check, anyone on the open internet could
+  // send SMS through this worker and burn the Twilio balance. Fails open only
+  // when the secret was never configured (to avoid breaking existing deploys).
+  if (env.API_INTERNAL_TOKEN) {
+    const authHeader = request.headers.get("Authorization") ?? "";
+    if (authHeader !== `Bearer ${env.API_INTERNAL_TOKEN}`) {
+      return err(403, "Forbidden");
+    }
+  }
+
   const body = await request.json();
   if (!body.to)   return err(400, "to is required");
   if (!body.body) return err(400, "body is required");
