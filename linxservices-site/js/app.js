@@ -2,20 +2,12 @@
    LinX — linxservices.ca · Shared JS (app.js)
    Contractor data is the single source of truth here, used by
    find-contractors.html and contractor-profile.html.
-   Demo dataset carried over from the LinX app mockups — replace
-   with a live API call when the backend endpoint is ready.
+   The demo dataset was removed — no fake listings or reviews.
+   When real contractor data is available, populate this array
+   from the live API instead of hardcoding entries here.
    ============================================================ */
 
-const CONTRACTORS = [
-  { id: 'mike-t',   name: 'Mike T.',   initials: 'MT', trade: 'Roofing',            city: 'Barrie',      rating: 4.9, reviews: 87,  rate: 95,  tags: ['Licensed', 'Insured', 'Free Estimate'],  bio: '12+ years in residential roofing across Barrie and Simcoe County. Specializing in asphalt shingle, metal, and flat roofs.', online: true,  jobs: 203, verified: true, since: 2022, resp: '1–2 hours',  area: ['Barrie', 'Innisfil', 'Orillia', 'Angus', 'Collingwood'] },
-  { id: 'carlos-r', name: 'Carlos R.', initials: 'CR', trade: 'Landscaping',        city: 'Orillia',     rating: 4.7, reviews: 63,  rate: 75,  tags: ['Insured', 'Free Estimate'],              bio: 'Award-winning landscape designer with 8 years of experience creating beautiful outdoor spaces in Simcoe County.',          online: true,  jobs: 94,  verified: true, since: 2023, resp: '2–4 hours',  area: ['Orillia', 'Barrie', 'Midland'] },
-  { id: 'jake-w',   name: 'Jake W.',   initials: 'JW', trade: 'Carpentry',          city: 'Barrie',      rating: 4.8, reviews: 44,  rate: 85,  tags: ['Licensed', 'Insured'],                   bio: 'Custom carpentry and fencing specialist. Decks, fences, framing, and finishing work done right the first time.',           online: false, jobs: 78,  verified: true, since: 2023, resp: 'Same day',   area: ['Barrie', 'Innisfil', 'Angus'] },
-  { id: 'tom-b',    name: 'Tom B.',    initials: 'TB', trade: 'Plumbing',           city: 'Innisfil',    rating: 4.6, reviews: 112, rate: 110, tags: ['Licensed', 'Insured', 'Emergency'],      bio: 'Licensed plumber serving all of Simcoe County. Emergency service available. 15+ years residential and commercial experience.', online: false, jobs: 321, verified: true, since: 2022, resp: '< 1 hour',   area: ['Innisfil', 'Barrie', 'Alcona', 'All of Simcoe Co.'] },
-  { id: 'anna-k',   name: 'Anna K.',   initials: 'AK', trade: 'Painting',           city: 'Collingwood', rating: 4.9, reviews: 35,  rate: 65,  tags: ['Insured', 'Interior', 'Exterior'],       bio: 'Professional painter with an eye for detail. Interior, exterior, cabinets, and feature walls. Premium finishes every time.',   online: true,  jobs: 47,  verified: true, since: 2024, resp: '2–4 hours',  area: ['Collingwood', 'Wasaga Beach', 'Barrie'] },
-  { id: 'derek-m',  name: 'Derek M.',  initials: 'DM', trade: 'Electrical',         city: 'Barrie',      rating: 4.8, reviews: 58,  rate: 120, tags: ['Licensed', 'Insured', '24/7'],           bio: 'Certified master electrician for residential and commercial projects. Panel upgrades, EV chargers, renovations.',           online: false, jobs: 188, verified: true, since: 2022, resp: '1–2 hours',  area: ['Barrie', 'Innisfil', 'Orillia'] },
-  { id: 'pat-l',    name: 'Pat L.',    initials: 'PL', trade: 'HVAC',               city: 'Midland',     rating: 4.5, reviews: 29,  rate: 100, tags: ['Certified', 'Insured', 'All Brands'],    bio: 'HVAC technician covering heating, cooling, and ventilation. Installs, repairs, and annual tune-ups.',                       online: false, jobs: 52,  verified: true, since: 2024, resp: 'Same day',   area: ['Midland', 'Orillia', 'Penetanguishene'] },
-  { id: 'kevin-s',  name: 'Kevin S.',  initials: 'KS', trade: 'General Contractor', city: 'Barrie',      rating: 4.7, reviews: 74,  rate: 80,  tags: ['Licensed', 'Full Reno', 'Insured'],      bio: 'Full-service general contractor handling kitchens, bathrooms, basements, and additions. Turnkey renovations done right.',   online: true,  jobs: 142, verified: true, since: 2022, resp: '1–2 hours',  area: ['Barrie', 'Innisfil', 'All of Simcoe Co.'] },
-];
+const CONTRACTORS = [];
 
 const TRADES = ['Plumbing', 'Roofing', 'Electrical', 'HVAC', 'Landscaping', 'Painting', 'Flooring', 'Masonry', 'Carpentry', 'General Contractor'];
 const CITIES = ['Barrie', 'Orillia', 'Midland', 'Collingwood', 'Innisfil'];

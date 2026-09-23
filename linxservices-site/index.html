@@ -273,10 +273,26 @@
       '<div class="card" style="grid-column:1/-1;color:var(--red);">⚠️ <strong>js/app.js failed to load.</strong> Deploy the full site folder (css/, js/, and all .html files) with the structure intact.</div>';
     throw new Error('[LinX:E-ASSET-404] js/app.js not loaded — CONTRACTORS unavailable. Verify /js/app.js exists at the deployed root.');
   }
-  // Featured contractors: top-rated three from the shared dataset
-  const featured = ['mike-t', 'anna-k', 'tom-b']
-    .map(id => CONTRACTORS.find(c => c.id === id));
-  document.getElementById('featured-grid').innerHTML = featured.map(contractorCard).join('');
+  // Featured contractors: top-rated three from the live dataset.
+  // Empty dataset → honest onboarding panel instead of fake listings.
+  const featuredGrid = document.getElementById('featured-grid');
+  if (!CONTRACTORS.length) {
+    featuredGrid.closest('section').querySelector('.section-title').textContent = 'Contractors onboarding now';
+    featuredGrid.style.display = 'block';
+    featuredGrid.innerHTML = `
+      <div class="card" style="text-align:center;padding:2.5rem 1.5rem;">
+        <div style="font-size:2.2rem;margin-bottom:.6rem;">🔧</div>
+        <div style="font-family:var(--font-head);font-size:1.05rem;margin-bottom:.5rem;">We&rsquo;re signing up Simcoe County&rsquo;s best pros</div>
+        <p style="color:var(--white-60);font-size:.9rem;max-width:34rem;margin:0 auto 1.2rem;">The directory launches with our first verified contractors. You can already post a job — we&rsquo;ll match you as pros join.</p>
+        <div style="display:flex;gap:.6rem;justify-content:center;flex-wrap:wrap;">
+          <a href="post-job.html" class="btn btn--gold">Post a Job</a>
+          <a href="pricing.html" class="btn btn--outline">Join as a Contractor</a>
+        </div>
+      </div>`;
+  } else {
+    const featured = [...CONTRACTORS].sort((a, b) => b.rating - a.rating).slice(0, 3);
+    featuredGrid.innerHTML = featured.map(contractorCard).join('');
+  }
 </script>
 </body>
 </html>
