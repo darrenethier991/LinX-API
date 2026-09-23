@@ -186,11 +186,13 @@
 <script src="js/app.js"></script>
 <script>
   /* ── Lead intake endpoint ─────────────────────────────────────
-     TODO: point at the lead-intake Worker (Cloudflare Worker
-     Gateway), e.g. 'https://api.linxservices.ca/leads'.
-     While empty, the form runs in demo mode: it validates, logs
-     the payload to the console, and shows the success panel. */
-  const LINX_JOB_ENDPOINT = '';
+     Public lead intake: POST https://api.linxservices.ca/api/contacts
+     (no auth required; rate-limited server-side). The API stores
+     name/email/phone on the contact and keeps the job details in
+     meta. NOTE: until the patched API worker is deployed, posts
+     here will fail and the error panel below will show — that is
+     correct behavior. Do not "fix" it by re-enabling demo mode. */
+  const LINX_JOB_ENDPOINT = 'https://api.linxservices.ca/api/contacts';
 
   /* Selects populate from js/app.js when present; otherwise these
      fallbacks keep the lead form functional no matter what.
@@ -257,21 +259,38 @@
       submittedAt: new Date().toISOString()
     };
 
-    if (!LINX_JOB_ENDPOINT) {
-      console.info('[LinX] Demo mode — no endpoint configured. Payload:', payload);
-      showSuccess();
-      return;
-    }
-
     btn.disabled = true;
     btn.textContent = 'Posting…';
     document.getElementById('submit-error').style.display = 'none';
+
+    /* Map the job form onto the public lead-intake schema
+       (POST /api/contacts): name/email/phone are top-level,
+       job details ride in meta. */
+    const leadBody = {
+      name: payload.name,
+      email: payload.email,
+      phone: payload.phone,
+      notes: `${payload.title} — ${payload.category} in ${payload.city} (urgency: ${payload.urgency})` +
+             (payload.budgetMin || payload.budgetMax ? `, budget: ${payload.budgetMin || '?'}–${payload.budgetMax || '?'}` : ''),
+      meta: {
+        job_title: payload.title,
+        job_category: payload.category,
+        job_description: payload.description,
+        job_urgency: payload.urgency,
+        job_city: payload.city,
+        job_budget_min: payload.budgetMin,
+        job_budget_max: payload.budgetMax,
+        consent: payload.consent,
+        page_source: payload.source,
+        submitted_at: payload.submittedAt
+      }
+    };
 
     try {
       const res = await fetch(LINX_JOB_ENDPOINT, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(leadBody)
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       showSuccess();
