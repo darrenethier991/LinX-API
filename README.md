@@ -59,6 +59,7 @@ bug. Do not reintroduce demo mode.
 
 - `linxservices-site/signup.html` redirects each plan to its Stripe Payment Link — paste the live links into `STRIPE_LINKS` in that file and set each link's "after payment" redirect to `https://linxservices.ca/success.html` before publishing. Until then, the signup form honestly tells visitors checkout isn't live yet.
 - The job board (`linxservices-site/jobs.html`) fetches `GET https://api.linxservices.ca/api/jobs` (public, rate-limited). The API does not have this route yet — when adding it, return only public-safe fields: `[{ id, post_type, title, trade, city, budget_min, budget_max, employment_type, urgency, description, posted_at }]` (`post_type` is `'project'` or `'hiring'`) and **never** expose poster name, email, or phone. Until the route is live, the page shows its honest empty state. The post form (`post-job.html`) sends `post_type` and `employment_type` in the lead `meta`.
+- Site assets: `favicon.svg` (tab icon), `og-image.jpg` (social share card used by the Open Graph/Twitter tags on every page), `404.html` (branded not-found page), `sitemap.xml` (all public pages).
 - `wrangler.jsonc` must be reconciled against the live dashboard config
   (routes, D1 binding, vars) before the next `linx-api` production deploy —
   do not deploy over the drift blindly.

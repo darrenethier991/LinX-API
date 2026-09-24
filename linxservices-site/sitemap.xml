@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://linxservices.ca/</loc><priority>1.0</priority></url>
+  <url><loc>https://linxservices.ca/post-job.html</loc><priority>0.9</priority></url>
+  <url><loc>https://linxservices.ca/jobs.html</loc><priority>0.9</priority></url>
+  <url><loc>https://linxservices.ca/find-contractors.html</loc><priority>0.8</priority></url>
+  <url><loc>https://linxservices.ca/pricing.html</loc><priority>0.8</priority></url>
+  <url><loc>https://linxservices.ca/signup.html</loc><priority>0.7</priority></url>
+  <url><loc>https://linxservices.ca/contractor-profile.html</loc><priority>0.6</priority></url>
+  <url><loc>https://linxservices.ca/contact.html</loc><priority>0.6</priority></url>
+  <url><loc>https://linxservices.ca/terms.html</loc><priority>0.3</priority></url>
+  <url><loc>https://linxservices.ca/privacy.html</loc><priority>0.3</priority></url>
+</urlset>
