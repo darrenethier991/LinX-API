@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en-CA">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Contractor Signup — LinX</title>
+  <meta name="description" content="Join LinX as a contractor. Pick your plan, enter your details, and check out securely with Stripe."/>
+  <link rel="stylesheet" href="css/app.css"/>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar__inner">
+    <a class="brand" href="index.html">
+      <span class="brand__dot"></span>
+      <span class="brand__text">LinX</span>
+    </a>
+    <button class="topbar__toggle" id="nav-toggle" aria-expanded="false" aria-controls="topbar-nav">☰</button>
+    <nav class="topbar__nav" id="topbar-nav">
+      <a href="index.html">Home</a>
+      <a href="find-contractors.html">Find Contractors</a>
+      <a href="pricing.html" class="active">For Contractors</a>
+      <a href="contact.html">Contact</a>
+      <a href="post-job.html" class="btn btn--gold btn--sm">Post a Job — Free</a>
+    </nav>
+  </div>
+</header>
+
+<section class="section">
+  <div class="shell" style="max-width:760px;">
+
+    <div class="section-head">
+      <p class="eyebrow">Contractor signup</p>
+      <h1 class="section-title">Join LinX</h1>
+      <p class="section-sub">Three steps: pick your plan, tell us about your business, check out securely. Your subscription activates the moment Stripe checkout completes.</p>
+    </div>
+
+    <!-- Plan summary (filled by JS from the ?plan= parameter) -->
+    <div class="card card--accent" id="plan-summary" style="margin-bottom:1.2rem;">
+      <div class="eyebrow" style="margin-bottom:.4rem;">Your plan</div>
+      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:1rem;flex-wrap:wrap;">
+        <div>
+          <div style="font-family:var(--font-head);font-size:1.3rem;" id="plan-name">—</div>
+          <div style="font-size:.85rem;color:var(--white-60);" id="plan-desc">—</div>
+        </div>
+        <div class="plan-price" id="plan-price" style="margin:0;">—</div>
+      </div>
+      <div style="margin-top:.8rem;"><a href="pricing.html" class="btn btn--ghost btn--sm">← Change plan</a></div>
+    </div>
+
+    <form id="signup-form">
+
+      <div class="card" style="margin-bottom:1.2rem;">
+        <h3 style="font-family:var(--font-head);font-size:1.02rem;margin:0 0 1.1rem;">👤 Your details</h3>
+
+        <div class="grid-2" style="gap:.8rem;">
+          <div class="form-group">
+            <label class="form-label" for="s-name">Full name <span class="req">*</span></label>
+            <input class="form-input" type="text" id="s-name" autocomplete="name" required maxlength="80"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="s-business">Business name</label>
+            <input class="form-input" type="text" id="s-business" autocomplete="organization" maxlength="120" placeholder="Optional"/>
+          </div>
+        </div>
+
+        <div class="grid-2" style="gap:.8rem;">
+          <div class="form-group">
+            <label class="form-label" for="s-email">Email <span class="req">*</span></label>
+            <input class="form-input" type="email" id="s-email" autocomplete="email" required/>
+            <div class="form-hint">Receipts and onboarding go here.</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="s-phone">Phone <span class="req">*</span></label>
+            <input class="form-input" type="tel" id="s-phone" autocomplete="tel" required/>
+            <div class="form-hint">Used for lead alerts on Pro.</div>
+          </div>
+        </div>
+
+        <div class="grid-2" style="gap:.8rem;">
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label" for="s-trade">Primary trade <span class="req">*</span></label>
+            <select class="form-select" id="s-trade" required>
+              <option value="">— Select your trade —</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label" for="s-city">Base city <span class="req">*</span></label>
+            <select class="form-select" id="s-city" required>
+              <option value="">— Select your area —</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="consent-row" style="border-top:1px solid var(--border);padding-top:1rem;margin-top:1rem;">
+          <input type="checkbox" id="s-consent" required/>
+          <label for="s-consent">I agree to the <a href="terms.html">Terms of Service</a> and <a href="privacy.html">Privacy Policy</a>, and I consent to LinX contacting me about my subscription. I can withdraw consent at any time.</label>
+        </div>
+      </div>
+
+      <div id="signup-error" class="notice-band" style="display:none;border-color:rgba(248,113,113,.4);background:rgba(248,113,113,.07);margin-bottom:1rem;">
+        ⚠️ <strong style="color:var(--red);">Checkout isn't live for this plan yet.</strong> Please call <a href="tel:+17057160803">705-716-0803</a> and we'll get you set up directly.
+      </div>
+
+      <div style="display:flex;justify-content:flex-end;align-items:center;gap:1rem;flex-wrap:wrap;">
+        <div style="font-size:.78rem;color:var(--white-35);">🔒 Secure checkout powered by Stripe</div>
+        <button type="submit" class="btn btn--gold btn--lg" id="signup-btn">Continue to Secure Checkout →</button>
+      </div>
+    </form>
+
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="shell">
+    <div class="footer__legal" style="border-top:none;padding-top:0;">
+      <span>© <span class="js-year">2026</span> LinX · Darren Ethier, Sole Proprietor · Barrie, Ontario</span>
+      <span><a href="index.html" style="color:inherit;">Home</a> · <a href="pricing.html" style="color:inherit;">Contractor Plans</a> · <a href="terms.html" style="color:inherit;">Terms</a> · <a href="privacy.html" style="color:inherit;">Privacy</a></span>
+    </div>
+  </div>
+</footer>
+
+<script src="js/app.js"></script>
+<script>
+  /* ═══════════════════════════════════════════════════════════
+     STRIPE PAYMENT LINKS — one per plan.
+     Create these in the Stripe dashboard: Products → each plan →
+     "Create payment link" → copy the link here. Set each link's
+     "After payment" redirect to https://linxservices.ca/success.html
+     ═══════════════════════════════════════════════════════════ */
+  const STRIPE_LINKS = {
+    starter:    'PASTE_STRIPE_PAYMENT_LINK_STARTER',
+    pro:        'PASTE_STRIPE_PAYMENT_LINK_PRO',
+    enterprise: 'PASTE_STRIPE_PAYMENT_LINK_ENTERPRISE'
+  };
+
+  const PLANS = {
+    starter:    { name: 'Starter',    price: '$60',  desc: 'For solo trades getting started — unlimited matched leads.' },
+    pro:        { name: 'Pro',        price: '$140', desc: 'For crews that live on steady lead flow — SMS alerts, AI scoring.' },
+    enterprise: { name: 'Enterprise', price: '$399+', desc: 'For multi-crew operations & franchises — white-label, API access.' }
+  };
+
+  const planKey = new URLSearchParams(window.location.search).get('plan');
+  const plan = PLANS[planKey] || PLANS.pro;
+  document.getElementById('plan-name').textContent = plan.name;
+  document.getElementById('plan-desc').textContent = plan.desc;
+  document.getElementById('plan-price').innerHTML = `${plan.price} <span>CAD / month</span>`;
+
+  // Trade / city selects from the shared dataset, with fallbacks
+  const tradeSel = document.getElementById('s-trade');
+  const citySel  = document.getElementById('s-city');
+  (typeof TRADES !== 'undefined' ? TRADES : ['Plumbing','Roofing','Electrical','HVAC','Landscaping','Painting','Flooring','Masonry','Carpentry','General Contractor'])
+    .forEach(t => tradeSel.add(new Option(t, t)));
+  (typeof CITIES !== 'undefined' ? CITIES : ['Barrie','Orillia','Midland','Collingwood','Innisfil'])
+    .forEach(c => citySel.add(new Option(c, c)));
+
+  document.getElementById('signup-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const link = STRIPE_LINKS[planKey] || '';
+    if (!link.startsWith('https://')) {
+      // No live payment link for this plan yet — be honest instead of redirecting nowhere.
+      document.getElementById('signup-error').style.display = 'block';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    // Fire-and-forget: capture the signup intent in the CRM when the API is reachable.
+    // Never blocks checkout — Stripe still collects name/email at payment.
+    const btn = document.getElementById('signup-btn');
+    btn.disabled = true;
+    btn.textContent = 'Redirecting to secure checkout…';
+    try {
+      await fetch('https://api.linxservices.ca/api/contacts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: document.getElementById('s-name').value.trim(),
+          email: document.getElementById('s-email').value.trim(),
+          phone: document.getElementById('s-phone').value.trim(),
+          notes: `Contractor signup intent — ${plan.name} plan`,
+          meta: {
+            plan: planKey,
+            business: document.getElementById('s-business').value.trim() || null,
+            trade: tradeSel.value,
+            city: citySel.value,
+            source: 'linxservices.ca/signup',
+            submitted_at: new Date().toISOString()
+          }
+        })
+      });
+    } catch (err) { /* CRM capture is best-effort; checkout proceeds regardless */ }
+
+    window.location.href = link;
+  });
+</script>
+</body>
+</html>

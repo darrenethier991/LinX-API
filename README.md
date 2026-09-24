@@ -57,9 +57,7 @@ bug. Do not reintroduce demo mode.
 
 ## Known gaps
 
-- The contractor directory in `linxservices-site/js/app.js` still renders a
-  hardcoded demo dataset. Replace with a live API call before presenting it
-  as a real marketplace.
+- `linxservices-site/signup.html` redirects each plan to its Stripe Payment Link — paste the live links into `STRIPE_LINKS` in that file and set each link's "after payment" redirect to `https://linxservices.ca/success.html` before publishing. Until then, the signup form honestly tells visitors checkout isn't live yet.
 - `wrangler.jsonc` must be reconciled against the live dashboard config
   (routes, D1 binding, vars) before the next `linx-api` production deploy —
   do not deploy over the drift blindly.
