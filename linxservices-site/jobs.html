@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en-CA">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Job Board — LinX</title>
+  <meta name="description" content="Browse real home projects posted by Simcoe County homeowners. No accounts, no spam — just work."/>
+  <link rel="stylesheet" href="css/app.css"/>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar__inner">
+    <a class="brand" href="index.html">
+      <span class="brand__dot"></span>
+      <span class="brand__text">LinX</span>
+    </a>
+    <button class="topbar__toggle" id="nav-toggle" aria-expanded="false" aria-controls="topbar-nav">☰</button>
+    <nav class="topbar__nav" id="topbar-nav">
+      <a href="index.html">Home</a>
+      <a href="find-contractors.html">Find Contractors</a>
+      <a href="jobs.html" class="active">Job Board</a>
+      <a href="pricing.html">For Contractors</a>
+      <a href="contact.html">Contact</a>
+      <a href="post-job.html" class="btn btn--gold btn--sm">Post a Job — Free</a>
+    </nav>
+  </div>
+</header>
+
+<section class="section">
+  <div class="shell">
+
+    <div class="section-head">
+      <p class="eyebrow">Job board</p>
+      <h1 class="section-title">Real projects, ready for quotes</h1>
+      <p class="section-sub">Posted by Simcoe County homeowners. No accounts, no spam — just work. Posting is always free.</p>
+    </div>
+
+    <!-- Search & filter bar -->
+    <div class="card" style="display:flex;flex-wrap:wrap;gap:.8rem;align-items:center;margin-bottom:1.4rem;padding:1rem 1.2rem;">
+      <div style="position:relative;flex:1;min-width:200px;">
+        <span style="position:absolute;left:.9rem;top:50%;transform:translateY(-50%);color:var(--white-35);">🔍</span>
+        <input class="form-input" id="job-search" type="search" placeholder="Search jobs…" style="padding-left:2.4rem;" oninput="renderJobs()"/>
+      </div>
+      <select class="form-select" id="job-filter-trade" style="max-width:190px;" onchange="renderJobs()">
+        <option value="">All Trades</option>
+      </select>
+      <select class="form-select" id="job-filter-city" style="max-width:170px;" onchange="renderJobs()">
+        <option value="">All of Simcoe Co.</option>
+      </select>
+    </div>
+
+    <div style="font-size:.83rem;color:var(--white-35);margin-bottom:1rem;" id="job-count"></div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:1rem;" id="job-grid"></div>
+
+    <!-- Loading -->
+    <div id="jobs-loading" style="text-align:center;padding:3rem;color:var(--white-35);">
+      <div style="font-size:2rem;margin-bottom:.6rem;">⏳</div>
+      <div style="font-size:.9rem;">Loading jobs…</div>
+    </div>
+
+    <!-- Empty state: no jobs yet (or board not connected yet) -->
+    <div id="jobs-empty" style="display:none;text-align:center;padding:3rem 1rem;">
+      <div class="card" style="max-width:46rem;margin:0 auto;padding:2.5rem 1.5rem;">
+        <div style="font-size:2.2rem;margin-bottom:.6rem;">🚀</div>
+        <div style="font-family:var(--font-head);font-size:1.05rem;margin-bottom:.5rem;">The job board is just getting started</div>
+        <p style="color:var(--white-60);font-size:.9rem;max-width:34rem;margin:0 auto 1.2rem;">No jobs posted yet — be the first. Posting is free, and matched contractors get notified automatically.</p>
+        <div style="display:flex;gap:.6rem;justify-content:center;flex-wrap:wrap;">
+          <a href="post-job.html" class="btn btn--gold">Post a Job — Free</a>
+          <a href="pricing.html" class="btn btn--outline">Join as a Contractor</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="cta-band" style="margin-top:2.5rem;">
+      <h2 class="section-title" style="font-size:1.3rem;margin-bottom:.5rem;">Have a project in mind?</h2>
+      <p class="section-sub" style="margin:0 auto 1.4rem;">Post it free and let matched contractors come to you.</p>
+      <a href="post-job.html" class="btn btn--gold btn--lg">Post a Job — Free</a>
+    </div>
+
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="shell">
+    <div class="footer__legal" style="border-top:none;padding-top:0;">
+      <span>© <span class="js-year">2026</span> LinX · Darren Ethier, Sole Proprietor · Barrie, Ontario</span>
+      <span><a href="index.html" style="color:inherit;">Home</a> · <a href="post-job.html" style="color:inherit;">Post a Job</a> · <a href="terms.html" style="color:inherit;">Terms</a> · <a href="privacy.html" style="color:inherit;">Privacy</a></span>
+    </div>
+  </div>
+</footer>
+
+<script src="js/app.js"></script>
+<script>
+  /* ── Public job board ─────────────────────────────────────────
+     GET https://api.linxservices.ca/api/jobs (public, rate-limited)
+     returns only public-safe fields:
+       [{ id, title, trade, city, budget_min, budget_max,
+          urgency, description, posted_at }]
+     Posters' names, emails, and phones are NEVER exposed here.
+     Until the endpoint is live, the board shows the honest
+     empty state below — no placeholder jobs, ever. */
+  const LINX_JOBS_ENDPOINT = 'https://api.linxservices.ca/api/jobs';
+
+  let JOBS = [];
+
+  const tradeSel = document.getElementById('job-filter-trade');
+  const citySel  = document.getElementById('job-filter-city');
+  (typeof TRADES !== 'undefined' ? TRADES : ['Plumbing','Roofing','Electrical','HVAC','Landscaping','Painting','Flooring','Masonry','Carpentry','General Contractor'])
+    .forEach(t => tradeSel.add(new Option(t, t)));
+  (typeof CITIES !== 'undefined' ? CITIES : ['Barrie','Orillia','Midland','Collingwood','Innisfil'])
+    .forEach(c => citySel.add(new Option(c, c)));
+
+  const URGENCY_LABEL = { flexible: '🗓 Flexible', soon: '⚡ Soon', asap: '🚨 ASAP' };
+
+  function fmtBudget(job) {
+    if (job.budget_min || job.budget_max) {
+      const lo = job.budget_min ? `$${Number(job.budget_min).toLocaleString()}` : '?';
+      const hi = job.budget_max ? `$${Number(job.budget_max).toLocaleString()}` : '?';
+      return `${lo} – ${hi}`;
+    }
+    return 'Budget on request';
+  }
+
+  function fmtDate(iso) {
+    try {
+      return new Date(iso).toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: 'numeric' });
+    } catch (e) { return ''; }
+  }
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
+  function jobCard(job) {
+    return `
+      <div class="card card--hover">
+        <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin-bottom:.6rem;">
+          <span class="tag tag--gold">${esc(job.trade || 'General')}</span>
+          ${job.urgency ? `<span class="tag">${esc(URGENCY_LABEL[job.urgency] || job.urgency)}</span>` : ''}
+          <span style="margin-left:auto;font-size:.75rem;color:var(--white-35);">${esc(fmtDate(job.posted_at))}</span>
+        </div>
+        <div style="font-weight:600;font-size:1.02rem;margin-bottom:.3rem;">${esc(job.title)}</div>
+        <div class="c-meta" style="margin-bottom:.6rem;">📍 ${esc(job.city || 'Simcoe County')}, ON</div>
+        <p class="c-bio">${esc((job.description || '').slice(0, 220))}${(job.description || '').length > 220 ? '…' : ''}</p>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:.8rem;margin-top:.8rem;flex-wrap:wrap;">
+          <span class="c-rate">${esc(fmtBudget(job))}</span>
+          <a href="contact.html" class="btn btn--outline btn--sm">I'm interested →</a>
+        </div>
+      </div>`;
+  }
+
+  function renderJobs() {
+    const grid  = document.getElementById('job-grid');
+    const empty = document.getElementById('jobs-empty');
+    const count = document.getElementById('job-count');
+    const q     = document.getElementById('job-search').value.toLowerCase();
+    const trade = tradeSel.value;
+    const city  = citySel.value;
+
+    const list = JOBS.filter(j =>
+      (!q || (j.title || '').toLowerCase().includes(q) || (j.description || '').toLowerCase().includes(q)) &&
+      (!trade || j.trade === trade) &&
+      (!city || j.city === city)
+    );
+
+    document.getElementById('jobs-loading').style.display = 'none';
+    if (!list.length) {
+      grid.innerHTML = '';
+      empty.style.display = 'block';
+      count.textContent = JOBS.length ? 'No jobs match your filters' : 'No jobs posted yet';
+      return;
+    }
+    empty.style.display = 'none';
+    count.textContent = `Showing ${list.length} job${list.length !== 1 ? 's' : ''}`;
+    grid.innerHTML = list.map(jobCard).join('');
+  }
+
+  (async function loadJobs() {
+    try {
+      const res = await fetch(LINX_JOBS_ENDPOINT);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      JOBS = Array.isArray(data) ? data : (data.jobs || []);
+    } catch (err) {
+      // Endpoint not live yet (or unreachable) — honest empty state, no fake jobs.
+      JOBS = [];
+    }
+    renderJobs();
+  })();
+</script>
+</body>
+</html>
