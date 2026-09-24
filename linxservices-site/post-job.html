@@ -31,21 +31,44 @@
   <div class="shell" style="max-width:760px;">
 
     <div class="section-head">
-      <p class="eyebrow">Free for homeowners</p>
-      <h1 class="section-title">Post a Job</h1>
-      <p class="section-sub">Describe what you need done and verified contractors in Simcoe County will send you quotes.</p>
+      <p class="eyebrow" id="post-eyebrow">Free for homeowners</p>
+      <h1 class="section-title" id="post-heading">Post a Job</h1>
+      <p class="section-sub" id="post-sub">Describe what you need done and verified contractors in Simcoe County will send you quotes.</p>
     </div>
 
     <form id="post-job-form">
 
+      <!-- Post type -->
+      <div class="card" style="margin-bottom:1.2rem;">
+        <h3 style="font-family:var(--font-head);font-size:1.02rem;margin:0 0 1.1rem;">📝 What are you posting?</h3>
+        <div class="urgency-grid posttype-grid" style="grid-template-columns:1fr 1fr;">
+          <label>
+            <input type="radio" name="post-type" value="project" checked style="display:none;"/>
+            <div class="urgency-card selected">
+              <div class="u-emoji">🏠</div>
+              <div class="u-title">Home Project</div>
+              <div class="u-sub">Get quotes from contractors</div>
+            </div>
+          </label>
+          <label>
+            <input type="radio" name="post-type" value="hiring" style="display:none;"/>
+            <div class="urgency-card">
+              <div class="u-emoji">💼</div>
+              <div class="u-title">Hiring</div>
+              <div class="u-sub">Find employees &amp; apprentices</div>
+            </div>
+          </label>
+        </div>
+      </div>
+
       <!-- What -->
       <div class="card" style="margin-bottom:1.2rem;">
-        <h3 style="font-family:var(--font-head);font-size:1.02rem;margin:0 0 1.1rem;">📋 What do you need done?</h3>
+        <h3 style="font-family:var(--font-head);font-size:1.02rem;margin:0 0 1.1rem;" id="what-heading">📋 What do you need done?</h3>
 
         <div class="form-group">
-          <label class="form-label" for="job-title">Job Title <span class="req">*</span></label>
+          <label class="form-label" for="job-title" id="title-label">Job Title <span class="req">*</span></label>
           <input class="form-input" type="text" id="job-title" placeholder="e.g. Kitchen faucet replacement, Roof repair…" required maxlength="120"/>
-          <div class="form-hint">Keep it short and clear — this is what contractors see first.</div>
+          <div class="form-hint" id="title-hint">Keep it short and clear — this is what contractors see first.</div>
         </div>
 
         <div class="form-group">
@@ -59,7 +82,7 @@
           <label class="form-label" for="job-desc">Description <span class="req">*</span></label>
           <textarea class="form-input" id="job-desc" rows="5" maxlength="1500" placeholder="Describe the job in detail — current condition, what you want done, materials or brands, access notes…" required></textarea>
           <div style="display:flex;justify-content:space-between;margin-top:.25rem;">
-            <div class="form-hint">More detail means more accurate quotes.</div>
+            <div class="form-hint" id="desc-hint">More detail means more accurate quotes.</div>
             <div class="form-hint" id="desc-count">0 / 1500</div>
           </div>
         </div>
@@ -97,7 +120,7 @@
 
       <!-- Where & budget -->
       <div class="card" style="margin-bottom:1.2rem;">
-        <h3 style="font-family:var(--font-head);font-size:1.02rem;margin:0 0 1.1rem;">📍 Location &amp; Budget</h3>
+        <h3 style="font-family:var(--font-head);font-size:1.02rem;margin:0 0 1.1rem;" id="loc-heading">📍 Location &amp; Budget</h3>
 
         <div class="form-group">
           <label class="form-label" for="job-city">City / Town <span class="req">*</span></label>
@@ -106,17 +129,28 @@
           </select>
         </div>
 
+        <div class="form-group" id="employment-group" style="display:none;">
+          <label class="form-label" for="job-employment">Employment Type</label>
+          <select class="form-select" id="job-employment">
+            <option value="">— Select —</option>
+            <option>Full-time</option>
+            <option>Part-time</option>
+            <option>Apprenticeship</option>
+            <option>Contract</option>
+          </select>
+        </div>
+
         <div class="grid-2" style="gap:.8rem;">
           <div class="form-group" style="margin-bottom:0;">
-            <label class="form-label" for="budget-min">Budget From (CAD)</label>
+            <label class="form-label" for="budget-min" id="budget-min-label">Budget From (CAD)</label>
             <input class="form-input" type="number" id="budget-min" min="0" step="50" placeholder="e.g. 500"/>
           </div>
           <div class="form-group" style="margin-bottom:0;">
-            <label class="form-label" for="budget-max">Budget To (CAD)</label>
+            <label class="form-label" for="budget-max" id="budget-max-label">Budget To (CAD)</label>
             <input class="form-input" type="number" id="budget-max" min="0" step="50" placeholder="e.g. 2500"/>
           </div>
         </div>
-        <div class="form-hint" style="margin-top:.4rem;">Optional — a range helps contractors quote accurately.</div>
+        <div class="form-hint" style="margin-top:.4rem;" id="budget-hint">Optional — a range helps contractors quote accurately.</div>
       </div>
 
       <!-- Who -->
@@ -146,7 +180,7 @@
 
         <div class="consent-row" style="border-top:1px solid var(--border);padding-top:1rem;">
           <input type="checkbox" id="consent" required/>
-          <label for="consent">I consent to LinX contacting me about this job and sharing my job details with matched contractors so they can provide quotes. I can withdraw consent at any time.
+          <label for="consent">I consent to LinX contacting me about this posting and sharing my posting details with interested parties so they can respond. I can withdraw consent at any time.
             By posting, I agree to the <a href="terms.html">Terms of Service</a> and <a href="privacy.html">Privacy Policy</a>.</label>
         </div>
       </div>
@@ -163,8 +197,8 @@
     <!-- Success state -->
     <div id="job-posted-success" class="success-panel" style="display:none;">
       <div class="s-emoji">🎉</div>
-      <h2>Job Posted!</h2>
-      <p>Your job is in the pipeline. Matched contractors in Simcoe County will be notified and quotes will start coming in — watch your email and phone.</p>
+      <h2 id="success-heading">Job Posted!</h2>
+      <p id="success-text">Your job is in the pipeline. Matched contractors in Simcoe County will be notified and quotes will start coming in — watch your email and phone.</p>
       <div style="display:flex;gap:.8rem;justify-content:center;flex-wrap:wrap;">
         <a href="find-contractors.html" class="btn btn--gold">Browse Contractors</a>
         <a href="index.html" class="btn btn--outline">Back to Home</a>
@@ -218,14 +252,81 @@
     descCount.style.color = l > 1400 ? 'var(--red)' : 'var(--white-35)';
   });
 
-  /* ── Urgency cards ── */
-  document.querySelectorAll('.urgency-grid label').forEach(opt => {
+  /* ── Urgency cards (scoped so the post-type cards don't interfere) ── */
+  document.querySelectorAll('.urgency-grid:not(.posttype-grid) label').forEach(opt => {
     opt.addEventListener('click', () => {
       opt.querySelector('input').checked = true;
-      document.querySelectorAll('.urgency-card').forEach(c => c.classList.remove('selected'));
+      const grid = opt.closest('.urgency-grid');
+      grid.querySelectorAll('.urgency-card').forEach(c => c.classList.remove('selected'));
       opt.querySelector('.urgency-card').classList.add('selected');
     });
   });
+
+  /* ── Post type: project vs hiring ── */
+  const COPY = {
+    project: {
+      eyebrow: 'Free for homeowners',
+      heading: 'Post a Job',
+      sub: 'Describe what you need done and verified contractors in Simcoe County will send you quotes.',
+      what: '📋 What do you need done?',
+      titleLabel: 'Job Title', titlePh: 'e.g. Kitchen faucet replacement, Roof repair…',
+      titleHint: 'Keep it short and clear — this is what contractors see first.',
+      descPh: 'Describe the job in detail — current condition, what you want done, materials or brands, access notes…',
+      descHint: 'More detail means more accurate quotes.',
+      loc: '📍 Location & Budget',
+      minLabel: 'Budget From (CAD)', maxLabel: 'Budget To (CAD)',
+      budgetHint: 'Optional — a range helps contractors quote accurately.',
+      submit: '🚀 Post My Job'
+    },
+    hiring: {
+      eyebrow: 'Free to post',
+      heading: 'Post a Hiring Ad',
+      sub: 'Reach local tradespeople across Simcoe County looking for work.',
+      what: '📋 What role are you hiring for?',
+      titleLabel: 'Position Title', titlePh: 'e.g. Apprentice Plumber, Experienced Roofer…',
+      titleHint: 'Keep it short and clear — this is what job seekers see first.',
+      descPh: 'Describe the role — duties, experience required, tools or tickets needed, schedule…',
+      descHint: 'More detail means better applicants.',
+      loc: '📍 Location & Pay',
+      minLabel: 'Pay From (CAD)', maxLabel: 'Pay To (CAD)',
+      budgetHint: 'Optional — hourly or salary range helps attract applicants.',
+      submit: '🚀 Post Hiring Ad'
+    }
+  };
+
+  function setPostType(type) {
+    const c = COPY[type];
+    document.getElementById('post-eyebrow').textContent = c.eyebrow;
+    document.getElementById('post-heading').textContent = c.heading;
+    document.getElementById('post-sub').textContent = c.sub;
+    document.getElementById('what-heading').textContent = c.what;
+    document.getElementById('title-label').innerHTML = c.titleLabel + ' <span class="req">*</span>';
+    document.getElementById('job-title').placeholder = c.titlePh;
+    document.getElementById('title-hint').textContent = c.titleHint;
+    document.getElementById('job-desc').placeholder = c.descPh;
+    document.getElementById('desc-hint').textContent = c.descHint;
+    document.getElementById('loc-heading').innerHTML = c.loc;
+    document.getElementById('budget-min-label').textContent = c.minLabel;
+    document.getElementById('budget-max-label').textContent = c.maxLabel;
+    document.getElementById('budget-hint').textContent = c.budgetHint;
+    document.getElementById('submit-btn').textContent = c.submit;
+    document.getElementById('employment-group').style.display = type === 'hiring' ? 'block' : 'none';
+  }
+
+  document.querySelectorAll('.posttype-grid label').forEach(opt => {
+    opt.addEventListener('click', () => {
+      opt.querySelector('input').checked = true;
+      document.querySelectorAll('.posttype-grid .urgency-card').forEach(x => x.classList.remove('selected'));
+      opt.querySelector('.urgency-card').classList.add('selected');
+      setPostType(opt.querySelector('input').value);
+    });
+  });
+
+  // Preselect from ?type=hiring (links from the job board)
+  if (new URLSearchParams(window.location.search).get('type') === 'hiring') {
+    const hiringOpt = document.querySelector('.posttype-grid input[value="hiring"]');
+    if (hiringOpt) hiringOpt.closest('label').click();
+  }
 
   /* ── Submit ── */
   const form = document.getElementById('post-job-form');
@@ -233,6 +334,11 @@
 
   function showSuccess() {
     form.style.display = 'none';
+    const isHiring = document.querySelector('input[name="post-type"]:checked').value === 'hiring';
+    if (isHiring) {
+      document.getElementById('success-heading').textContent = 'Hiring Ad Posted!';
+      document.getElementById('success-text').textContent = 'Your ad is live in the pipeline. Job seekers across Simcoe County will see it on the job board — watch your email and phone for applicants.';
+    }
     document.getElementById('job-posted-success').style.display = 'block';
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -244,11 +350,13 @@
     if (document.getElementById('hp-website').value) { showSuccess(); return; }
 
     const payload = {
+      postType: document.querySelector('input[name="post-type"]:checked').value,
       title: document.getElementById('job-title').value.trim(),
       category: catSel.value,
       description: descInput.value.trim(),
       urgency: document.querySelector('input[name="urgency"]:checked').value,
       city: citySel.value,
+      employment: document.getElementById('job-employment').value || null,
       budgetMin: document.getElementById('budget-min').value || null,
       budgetMax: document.getElementById('budget-max').value || null,
       name: document.getElementById('c-name').value.trim(),
@@ -270,14 +378,17 @@
       name: payload.name,
       email: payload.email,
       phone: payload.phone,
-      notes: `${payload.title} — ${payload.category} in ${payload.city} (urgency: ${payload.urgency})` +
-             (payload.budgetMin || payload.budgetMax ? `, budget: ${payload.budgetMin || '?'}–${payload.budgetMax || '?'}` : ''),
+      notes: `${payload.postType === 'hiring' ? 'HIRING' : 'JOB'}: ${payload.title} — ${payload.category} in ${payload.city} (urgency: ${payload.urgency})` +
+             (payload.employment ? `, ${payload.employment}` : '') +
+             (payload.budgetMin || payload.budgetMax ? `, ${payload.postType === 'hiring' ? 'pay' : 'budget'}: ${payload.budgetMin || '?'}–${payload.budgetMax || '?'}` : ''),
       meta: {
+        post_type: payload.postType,
         job_title: payload.title,
         job_category: payload.category,
         job_description: payload.description,
         job_urgency: payload.urgency,
         job_city: payload.city,
+        job_employment_type: payload.employment,
         job_budget_min: payload.budgetMin,
         job_budget_max: payload.budgetMax,
         consent: payload.consent,
@@ -298,7 +409,7 @@
       document.getElementById('submit-error-detail').textContent = `(${err.message})`;
       document.getElementById('submit-error').style.display = 'block';
       btn.disabled = false;
-      btn.textContent = '🚀 Post My Job';
+      setPostType(document.querySelector('input[name="post-type"]:checked').value);
     }
   });
 </script>

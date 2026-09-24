@@ -48,6 +48,11 @@
       <select class="form-select" id="job-filter-city" style="max-width:170px;" onchange="renderJobs()">
         <option value="">All of Simcoe Co.</option>
       </select>
+      <select class="form-select" id="job-filter-type" style="max-width:170px;" onchange="renderJobs()">
+        <option value="">Projects + Hiring</option>
+        <option value="project">Home projects</option>
+        <option value="hiring">Hiring ads</option>
+      </select>
     </div>
 
     <div style="font-size:.83rem;color:var(--white-35);margin-bottom:1rem;" id="job-count"></div>
@@ -74,9 +79,12 @@
     </div>
 
     <div class="cta-band" style="margin-top:2.5rem;">
-      <h2 class="section-title" style="font-size:1.3rem;margin-bottom:.5rem;">Have a project in mind?</h2>
-      <p class="section-sub" style="margin:0 auto 1.4rem;">Post it free and let matched contractors come to you.</p>
-      <a href="post-job.html" class="btn btn--gold btn--lg">Post a Job — Free</a>
+      <h2 class="section-title" style="font-size:1.3rem;margin-bottom:.5rem;">Have a project — or a position to fill?</h2>
+      <p class="section-sub" style="margin:0 auto 1.4rem;">Posting is free, and matched people get notified automatically.</p>
+      <div style="display:flex;gap:.6rem;justify-content:center;flex-wrap:wrap;">
+        <a href="post-job.html" class="btn btn--gold btn--lg">Post a Job — Free</a>
+        <a href="post-job.html?type=hiring" class="btn btn--outline btn--lg">Post a Hiring Ad</a>
+      </div>
     </div>
 
   </div>
@@ -96,8 +104,9 @@
   /* ── Public job board ─────────────────────────────────────────
      GET https://api.linxservices.ca/api/jobs (public, rate-limited)
      returns only public-safe fields:
-       [{ id, title, trade, city, budget_min, budget_max,
-          urgency, description, posted_at }]
+       [{ id, post_type, title, trade, city, budget_min, budget_max,
+          employment_type, urgency, description, posted_at }]
+     post_type is 'project' or 'hiring' (defaults to 'project').
      Posters' names, emails, and phones are NEVER exposed here.
      Until the endpoint is live, the board shows the honest
      empty state below — no placeholder jobs, ever. */
@@ -115,12 +124,13 @@
   const URGENCY_LABEL = { flexible: '🗓 Flexible', soon: '⚡ Soon', asap: '🚨 ASAP' };
 
   function fmtBudget(job) {
+    const label = (job.post_type || 'project') === 'hiring' ? 'Pay' : 'Budget';
     if (job.budget_min || job.budget_max) {
       const lo = job.budget_min ? `$${Number(job.budget_min).toLocaleString()}` : '?';
       const hi = job.budget_max ? `$${Number(job.budget_max).toLocaleString()}` : '?';
-      return `${lo} – ${hi}`;
+      return `${label}: ${lo} – ${hi}`;
     }
-    return 'Budget on request';
+    return `${label} on request`;
   }
 
   function fmtDate(iso) {
@@ -134,10 +144,13 @@
   }
 
   function jobCard(job) {
+    const isHiring = (job.post_type || 'project') === 'hiring';
     return `
       <div class="card card--hover">
         <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin-bottom:.6rem;">
+          <span class="tag ${isHiring ? '' : 'tag--gold'}">${isHiring ? '💼 Hiring' : '🏠 Project'}</span>
           <span class="tag tag--gold">${esc(job.trade || 'General')}</span>
+          ${job.employment_type ? `<span class="tag">${esc(job.employment_type)}</span>` : ''}
           ${job.urgency ? `<span class="tag">${esc(URGENCY_LABEL[job.urgency] || job.urgency)}</span>` : ''}
           <span style="margin-left:auto;font-size:.75rem;color:var(--white-35);">${esc(fmtDate(job.posted_at))}</span>
         </div>
@@ -146,7 +159,7 @@
         <p class="c-bio">${esc((job.description || '').slice(0, 220))}${(job.description || '').length > 220 ? '…' : ''}</p>
         <div style="display:flex;align-items:center;justify-content:space-between;gap:.8rem;margin-top:.8rem;flex-wrap:wrap;">
           <span class="c-rate">${esc(fmtBudget(job))}</span>
-          <a href="contact.html" class="btn btn--outline btn--sm">I'm interested →</a>
+          <a href="contact.html" class="btn btn--outline btn--sm">${isHiring ? 'Apply →' : "I'm interested →"}</a>
         </div>
       </div>`;
   }
@@ -158,11 +171,13 @@
     const q     = document.getElementById('job-search').value.toLowerCase();
     const trade = tradeSel.value;
     const city  = citySel.value;
+    const type  = document.getElementById('job-filter-type').value;
 
     const list = JOBS.filter(j =>
       (!q || (j.title || '').toLowerCase().includes(q) || (j.description || '').toLowerCase().includes(q)) &&
       (!trade || j.trade === trade) &&
-      (!city || j.city === city)
+      (!city || j.city === city) &&
+      (!type || (j.post_type || 'project') === type)
     );
 
     document.getElementById('jobs-loading').style.display = 'none';
