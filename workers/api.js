@@ -8,6 +8,7 @@
  * Public routes:
  *   GET  /health                      → liveness + version
  *   POST /api/contacts                → public lead intake (rate-limited + validated)
+ *   GET  /api/jobs                    → public job board feed (rate-limited, public-safe fields only)
  *
  *   ── CRM — contacts ──
  *   POST   /api/contacts              → upsert contact
@@ -40,15 +41,17 @@
  */
 
 const JSON_HEADERS = { "Content-Type": "application/json" };
-const VERSION      = "1.2.0";
+const VERSION      = "1.3.0";
 
 // Routes that skip JWT auth entirely (method-aware).
 // POST /api/contacts is the public lead-intake endpoint used by the website
 // contact form. Unauthenticated submissions are rate-limited per IP and pass
 // strict validation inside handleCreateContact instead of JWT auth.
+// GET /api/jobs is the public job board feed (public-safe fields only).
 const PUBLIC_ROUTES = new Set([
   "GET /health",
   "POST /api/contacts",
+  "GET /api/jobs",
 ]);
 
 // ---------------------------------------------------------------------------
@@ -86,6 +89,11 @@ export default {
         const id = contactMatch[1];
         if (method === "GET")   return handleGetContact(id, env);
         if (method === "PATCH") return handleUpdateContact(id, request, env);
+      }
+
+      // Public job board feed (no auth; rate-limited; public-safe fields only)
+      if (url.pathname === "/api/jobs" && method === "GET") {
+        return handleListJobs(request, env);
       }
 
       // CRM — orgs
@@ -411,6 +419,82 @@ async function handleUpdateContact(id, request, env) {
 
   const [updated] = await res.json();
   return ok(updated);
+}
+
+// ---------------------------------------------------------------------------
+// Public job board feed
+// ---------------------------------------------------------------------------
+// GET /api/jobs — public, rate-limited. Powers the job board on
+// linxservices.ca/jobs.html (?type=project|hiring&trade=&city=&limit=&offset=).
+//
+// Job posts arrive as contacts through the public POST /api/contacts lead
+// intake, with the job details stored in meta:
+//   meta.post_type, meta.job_title, meta.job_category, meta.job_description,
+//   meta.job_urgency, meta.job_city, meta.job_employment_type,
+//   meta.job_budget_min, meta.job_budget_max
+//
+// PRIVACY: this endpoint must NEVER expose poster PII. The Supabase select
+// below fetches only id, meta, tags, and created_at — name, email, phone,
+// and notes are not even retrieved, so they cannot leak through the mapping.
+// Moderation: PATCH the contact (auth'd) and add the "hidden" or "spam" tag
+// to pull a post off the board without deleting the lead.
+async function handleListJobs(request, env) {
+  const ip = request.headers.get("cf-connecting-ip") ?? "unknown";
+  if (await checkRateLimit(env, `jobs-list:${ip}`, 120, 3600)) {
+    return err(429, "Too many requests — please try again later");
+  }
+
+  const url    = new URL(request.url);
+  const limit  = Math.min(parseInt(url.searchParams.get("limit")  ?? "50"), 100);
+  const offset = Math.max(parseInt(url.searchParams.get("offset") ?? "0"),   0);
+  const type   = url.searchParams.get("type"); // project | hiring
+  const trade  = url.searchParams.get("trade");
+  const city   = url.searchParams.get("city");
+
+  // PostgREST JSON operators on the meta column. Posts created before the
+  // hiring update have no meta.post_type and are treated as projects.
+  const typeFilter = type === "hiring"
+    ? "meta->>post_type=eq.hiring"
+    : type === "project"
+      ? "or=(meta->>post_type.eq.project,meta->>post_type.is.null)"
+      : "or=(meta->>post_type.in.(project,hiring),meta->>post_type.is.null)";
+
+  let path = `/rest/v1/contacts?select=id,meta,tags,created_at&source=eq.web&${typeFilter}&order=created_at.desc&limit=${limit}&offset=${offset}`;
+  if (trade) path += `&meta->>job_category=eq.${encodeURIComponent(trade)}`;
+  if (city)  path += `&meta->>job_city=eq.${encodeURIComponent(city)}`;
+
+  const res = await supabaseFetch(env, "GET", path, null, true);
+  if (!res.ok) return err(res.status, await res.text());
+
+  const num = (v) => {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : null;
+  };
+  const str = (v) => {
+    const s = String(v ?? "").trim();
+    return s ? s : null;
+  };
+
+  const jobs = (await res.json())
+    .filter((c) => !((c.tags ?? []).some((t) => t === "hidden" || t === "spam")))
+    .map((c) => {
+      const meta = c.meta ?? {};
+      return {
+        id:              c.id,
+        post_type:       meta.post_type === "hiring" ? "hiring" : "project",
+        title:           str(meta.job_title) ?? "(untitled)",
+        trade:           str(meta.job_category) ?? "General",
+        city:            str(meta.job_city) ?? "Simcoe County",
+        budget_min:      num(meta.job_budget_min),
+        budget_max:      num(meta.job_budget_max),
+        employment_type: str(meta.job_employment_type),
+        urgency:         str(meta.job_urgency),
+        description:     str(meta.job_description) ?? "",
+        posted_at:       c.created_at,
+      };
+    });
+
+  return ok(jobs);
 }
 
 // ---------------------------------------------------------------------------
