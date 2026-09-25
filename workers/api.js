@@ -41,7 +41,7 @@
  */
 
 const JSON_HEADERS = { "Content-Type": "application/json" };
-const VERSION      = "1.3.0";
+const VERSION      = "1.3.1";
 
 // Routes that skip JWT auth entirely (method-aware).
 // POST /api/contacts is the public lead-intake endpoint used by the website
@@ -425,13 +425,13 @@ async function handleUpdateContact(id, request, env) {
 // Public job board feed
 // ---------------------------------------------------------------------------
 // GET /api/jobs — public, rate-limited. Powers the job board on
-// linxservices.ca/jobs.html (?type=project|hiring&trade=&city=&limit=&offset=).
+// linxservices.ca/jobs.html (?type=project|hiring|seeking&trade=&city=&limit=&offset=).
 //
 // Job posts arrive as contacts through the public POST /api/contacts lead
 // intake, with the job details stored in meta:
 //   meta.post_type, meta.job_title, meta.job_category, meta.job_description,
 //   meta.job_urgency, meta.job_city, meta.job_employment_type,
-//   meta.job_budget_min, meta.job_budget_max
+//   meta.job_availability, meta.job_budget_min, meta.job_budget_max
 //
 // PRIVACY: this endpoint must NEVER expose poster PII. The Supabase select
 // below fetches only id, meta, tags, and created_at — name, email, phone,
@@ -447,7 +447,7 @@ async function handleListJobs(request, env) {
   const url    = new URL(request.url);
   const limit  = Math.min(parseInt(url.searchParams.get("limit")  ?? "50"), 100);
   const offset = Math.max(parseInt(url.searchParams.get("offset") ?? "0"),   0);
-  const type   = url.searchParams.get("type"); // project | hiring
+  const type   = url.searchParams.get("type"); // project | hiring | seeking
   const trade  = url.searchParams.get("trade");
   const city   = url.searchParams.get("city");
 
@@ -455,9 +455,11 @@ async function handleListJobs(request, env) {
   // hiring update have no meta.post_type and are treated as projects.
   const typeFilter = type === "hiring"
     ? "meta->>post_type=eq.hiring"
-    : type === "project"
-      ? "or=(meta->>post_type.eq.project,meta->>post_type.is.null)"
-      : "or=(meta->>post_type.in.(project,hiring),meta->>post_type.is.null)";
+    : type === "seeking"
+      ? "meta->>post_type=eq.seeking"
+      : type === "project"
+        ? "or=(meta->>post_type.eq.project,meta->>post_type.is.null)"
+        : "or=(meta->>post_type.in.(project,hiring,seeking),meta->>post_type.is.null)";
 
   let path = `/rest/v1/contacts?select=id,meta,tags,created_at&source=eq.web&${typeFilter}&order=created_at.desc&limit=${limit}&offset=${offset}`;
   if (trade) path += `&meta->>job_category=eq.${encodeURIComponent(trade)}`;
@@ -481,13 +483,15 @@ async function handleListJobs(request, env) {
       const meta = c.meta ?? {};
       return {
         id:              c.id,
-        post_type:       meta.post_type === "hiring" ? "hiring" : "project",
+        post_type:       meta.post_type === "hiring" ? "hiring"
+                        : meta.post_type === "seeking" ? "seeking" : "project",
         title:           str(meta.job_title) ?? "(untitled)",
         trade:           str(meta.job_category) ?? "General",
         city:            str(meta.job_city) ?? "Simcoe County",
         budget_min:      num(meta.job_budget_min),
         budget_max:      num(meta.job_budget_max),
         employment_type: str(meta.job_employment_type),
+        availability:    str(meta.job_availability),
         urgency:         str(meta.job_urgency),
         description:     str(meta.job_description) ?? "",
         posted_at:       c.created_at,
