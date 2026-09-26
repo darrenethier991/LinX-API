@@ -42,6 +42,32 @@ const MODELS = {
   summary: "@cf/meta/llama-3.1-8b-instruct-fast",
 };
 
+// Appended to every agent system prompt: some models emit Python-style
+// single-quoted output unless explicitly told to use strict JSON.
+const JSON_STRICT =
+  " Use strict JSON only: double quotes for all keys and string values, " +
+  "no single quotes, no markdown code fences, no commentary.";
+
+// Parse a JSON object out of an AI text response. Tolerant of markdown
+// fences, preamble/epilogue text, and single-quoted pseudo-JSON. Returns
+// null when nothing parseable is found (callers fall back to defaults).
+function parseAgentJson(raw) {
+  const text = String(raw ?? "")
+    .replace(/```(?:json)?/gi, "")
+    .replace(/```/g, "")
+    .trim();
+  const match = text.match(/\{[\s\S]*\}/); // greedy: first { to last }
+  if (!match) return null;
+  try {
+    return JSON.parse(match[0]);
+  } catch { /* try lenient single-quote handling */ }
+  try {
+    const parsed = JSON.parse(match[0].replace(/'([^']*)'/g, '"$1"'));
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) return parsed;
+  } catch { /* fall through */ }
+  return null;
+}
+
 const INTENTS = ["schedule", "cancel", "inquiry", "complaint", "opt_out", "unknown"];
 
 // Max messages kept in a conversation thread (sliding window)
@@ -282,7 +308,7 @@ async function handleClassify(request, env, ctx) {
     "You are a classification engine for a business SMS system. " +
     "Respond with ONLY a JSON object and nothing else: " +
     `{ "intent": "<intent>", "confidence": <0.0-1.0> }. ` +
-    `Valid intents: ${INTENTS.join(", ")}.`;
+    `Valid intents: ${INTENTS.join(", ")}.` + JSON_STRICT;
 
   const messages = [
     { role: "system", content: systemPrompt },
@@ -292,8 +318,7 @@ async function handleClassify(request, env, ctx) {
   let parsed;
   try {
     const raw = await callAI(messages, env, 15_000);
-    const match = raw.match(/\{[\s\S]*?\}/);
-    parsed = match ? JSON.parse(match[0]) : { intent: "unknown", confidence: 0 };
+    parsed = parseAgentJson(raw) ?? { intent: "unknown", confidence: 0 };
     if (!INTENTS.includes(parsed.intent)) parsed = { intent: "unknown", confidence: 0 };
   } catch {
     parsed = { intent: "unknown", confidence: 0 };
@@ -471,17 +496,16 @@ async function handleAgentExtract(payload, env) {
       content:
         "Extract structured data from the text. " +
         `Return ONLY a JSON object with keys: ${fields.join(", ")}. ` +
-        "Use null for any field not found.",
+        "Use null for any field not found." + JSON_STRICT,
     },
     { role: "user", content: payload.text },
   ];
   try {
     const raw       = await callAI(messages, env, 15_000);
-    const match     = raw.match(/\{[\s\S]*?\}/);
-    const extracted = match ? JSON.parse(match[0]) : {};
+    const extracted = parseAgentJson(raw) ?? {};
     return ok({ task: "extract", extracted });
   } catch {
-    return err(500, "extract: could not parse AI response");
+    return err(500, "extract: AI call failed");
   }
 }
 
@@ -500,15 +524,14 @@ async function handleAgentQualifyLead(payload, env, _ctx, meta) {
         '{ "score": <1-10>, "tier": "hot"|"warm"|"cold", ' +
         '"needs": "<one-line summary>", "urgency": "immediate"|"this_week"|"planning", ' +
         '"budget_signal": "high"|"medium"|"low"|"unknown", "recommended_action": "<string>" }. ' +
-        "Base score on intent clarity, urgency, and budget signals.",
+        "Base score on intent clarity, urgency, and budget signals." + JSON_STRICT,
     },
     { role: "user", content: text },
   ];
 
   try {
-    const raw   = await callAI(messages, env, 20_000);
-    const match = raw.match(/\{[\s\S]*?\}/);
-    const lead  = match ? JSON.parse(match[0]) : { score: 5, tier: "warm" };
+    const raw  = await callAI(messages, env, 20_000);
+    const lead = parseAgentJson(raw) ?? { score: 5, tier: "warm" };
 
     // Tool call: if API_URL is set, upsert lead score onto the contact record
     if (env.API_URL && meta?.contactId) {
@@ -519,7 +542,7 @@ async function handleAgentQualifyLead(payload, env, _ctx, meta) {
 
     return ok({ task: "qualify_lead", ...lead });
   } catch {
-    return err(500, "qualify_lead: could not parse AI response");
+    return err(500, "qualify_lead: AI call failed");
   }
 }
 
@@ -534,15 +557,14 @@ async function handleAgentScheduleFollowup(payload, env, _ctx, meta) {
         "You are a follow-up scheduling assistant. " +
         "Based on the message, return ONLY a JSON object: " +
         '{ "followup_in_hours": <number>, "followup_message": "<SMS text under 160 chars>", ' +
-        '"reason": "<one-line reason>", "priority": "high"|"medium"|"low" }.',
+        '"reason": "<one-line reason>", "priority": "high"|"medium"|"low" }.' + JSON_STRICT,
     },
     { role: "user", content: text },
   ];
 
   try {
     const raw      = await callAI(messages, env, 15_000);
-    const match    = raw.match(/\{[\s\S]*?\}/);
-    const schedule = match ? JSON.parse(match[0]) : { followup_in_hours: 24, priority: "medium" };
+    const schedule = parseAgentJson(raw) ?? { followup_in_hours: 24, priority: "medium" };
 
     // Tool call: fire automation trigger for follow-up scheduling
     if (env.API_URL) {
@@ -560,7 +582,7 @@ async function handleAgentScheduleFollowup(payload, env, _ctx, meta) {
 
     return ok({ task: "schedule_followup", ...schedule });
   } catch {
-    return err(500, "schedule_followup: could not parse AI response");
+    return err(500, "schedule_followup: AI call failed");
   }
 }
 
@@ -580,18 +602,17 @@ async function handleAgentGenerateQuote(payload, env) {
         '{ "estimate_low_cad": <number>, "estimate_high_cad": <number>, ' +
         '"timeline_days": <number>, "key_line_items": ["<item>", ...], ' +
         '"assumptions": ["<assumption>", ...], "disclaimer": "<string>" }. ' +
-        "Use realistic Canadian labour and material rates.",
+        "Use realistic Canadian labour and material rates." + JSON_STRICT,
     },
     { role: "user", content: project },
   ];
 
   try {
     const raw   = await callAI(messages, env, 25_000);
-    const match = raw.match(/\{[\s\S]*?\}/);
-    const quote = match ? JSON.parse(match[0]) : {};
+    const quote = parseAgentJson(raw) ?? {};
     return ok({ task: "generate_quote", ...quote });
   } catch {
-    return err(500, "generate_quote: could not parse AI response");
+    return err(500, "generate_quote: AI call failed");
   }
 }
 
@@ -607,20 +628,18 @@ async function handleAgentSentiment(payload, env) {
         '{ "sentiment": "positive"|"neutral"|"negative", "score": <-1.0 to 1.0>, ' +
         '"emotion": "happy"|"frustrated"|"urgent"|"confused"|"satisfied"|"neutral", ' +
         '"escalate": <true|false> }. ' +
-        "Set escalate=true if the message contains complaints, anger, or urgent distress.",
+        "Set escalate=true if the message contains complaints, anger, or urgent distress." + JSON_STRICT,
     },
     { role: "user", content: text },
   ];
 
   try {
-    const raw   = await callAI(messages, env, 10_000);
-    const match = raw.match(/\{[\s\S]*?\}/);
-    const result = match
-      ? JSON.parse(match[0])
-      : { sentiment: "neutral", score: 0, emotion: "neutral", escalate: false };
+    const raw    = await callAI(messages, env, 10_000);
+    const result = parseAgentJson(raw)
+      ?? { sentiment: "neutral", score: 0, emotion: "neutral", escalate: false };
     return ok({ task: "sentiment", ...result });
   } catch {
-    return err(500, "sentiment: could not parse AI response");
+    return err(500, "sentiment: AI call failed");
   }
 }
 
@@ -637,18 +656,17 @@ async function handleAgentExtractEntities(payload, env) {
         '"address": <string|null>, "city": <string|null>, "province": <string|null>, ' +
         '"trade": <string|null>, "project_type": <string|null>, ' +
         '"dates": [<string>, ...], "amounts": [<string>, ...] }. ' +
-        "Use null for fields not found. Normalize phone numbers to E.164 format if possible.",
+        "Use null for fields not found. Normalize phone numbers to E.164 format if possible." + JSON_STRICT,
     },
     { role: "user", content: text },
   ];
 
   try {
-    const raw     = await callAI(messages, env, 15_000);
-    const match   = raw.match(/\{[\s\S]*?\}/);
-    const entities = match ? JSON.parse(match[0]) : {};
+    const raw      = await callAI(messages, env, 15_000);
+    const entities = parseAgentJson(raw) ?? {};
     return ok({ task: "extract_entities", entities });
   } catch {
-    return err(500, "extract_entities: could not parse AI response");
+    return err(500, "extract_entities: AI call failed");
   }
 }
 
@@ -667,20 +685,18 @@ async function handleAgentRouteToDepartment(payload, env) {
         '"reason": "<one-line>", "priority": "high"|"medium"|"low", ' +
         '"suggested_workflow": "<workflow_name>" }. ' +
         "emergency = any urgent safety/damage issue. " +
-        "Suggested workflow names: qualify_lead, schedule_followup, support_ticket, billing_inquiry.",
+        "Suggested workflow names: qualify_lead, schedule_followup, support_ticket, billing_inquiry." + JSON_STRICT,
     },
     { role: "user", content: `Message: ${text}${intent ? `\nDetected intent: ${intent}` : ""}` },
   ];
 
   try {
-    const raw    = await callAI(messages, env, 10_000);
-    const match  = raw.match(/\{[\s\S]*?\}/);
-    const routing = match
-      ? JSON.parse(match[0])
-      : { department: "general", priority: "medium", suggested_workflow: "qualify_lead" };
+    const raw     = await callAI(messages, env, 10_000);
+    const routing = parseAgentJson(raw)
+      ?? { department: "general", priority: "medium", suggested_workflow: "qualify_lead" };
     return ok({ task: "route_to_department", ...routing });
   } catch {
-    return err(500, "route_to_department: could not parse AI response");
+    return err(500, "route_to_department: AI call failed");
   }
 }
 
