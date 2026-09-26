@@ -37,11 +37,14 @@
  *   SUPABASE_URL          secret
  *   SUPABASE_ANON_KEY     secret
  *   SUPABASE_SERVICE_KEY  secret  ← bypasses RLS for server-side ops
+ *   AI_GATEWAY_URL        secret  ← base URL of the linx-ai-gateway worker
+ *                             (e.g. https://ai.linxservices.ca); when unset,
+ *                             AI lead qualification is skipped
  *   LINX_KV               KV namespace
  */
 
 const JSON_HEADERS = { "Content-Type": "application/json" };
-const VERSION      = "1.3.1";
+const VERSION      = "1.3.2";
 
 // Routes that skip JWT auth entirely (method-aware).
 // POST /api/contacts is the public lead-intake endpoint used by the website
@@ -334,6 +337,9 @@ async function handleCreateContact(request, env, ctx) {
   // 2. Send the welcome SMS directly when we have a phone number. (There is
   //    currently no workflow runner consuming the event bus, so the
   //    send_welcome_sms workflow alone cannot fire.)
+  // 3. AI lead qualification: score the lead 1–10 via the AI gateway and store
+  //    the score on the contact. Runs in the background; skipped entirely when
+  //    AI_GATEWAY_URL is not configured.
   try {
     await enqueueEvent(env, {
       type:    "crm.contact.created",
@@ -345,11 +351,69 @@ async function handleCreateContact(request, env, ctx) {
     if (digits.length >= 7 && digits.length <= 15) {
       ctx.waitUntil(sendWelcomeSms(env, phone, contact?.id ?? null));
     }
+
+    if (env.AI_GATEWAY_URL && contact?.id) {
+      ctx.waitUntil(qualifyLeadAndStore(env, contact.id, {
+        name, email, phone, notes, source: payload.source,
+      }));
+    }
   } catch {
     // Side effects must never break contact creation
   }
 
   return ok(contact, 201);
+}
+
+// ── AI lead qualification ───────────────────────────────────────────────────
+// Calls the linx-ai-gateway worker's qualify_lead agent task, then stores the
+// resulting 1–10 score on the contact row and enqueues a crm.lead.qualified
+// event with the full qualification. Every failure path is silent: intake must
+// never break because the AI gateway is unreachable.
+async function qualifyLeadAndStore(env, contactId, lead) {
+  try {
+    const lines = [];
+    if (lead.name)  lines.push(`Name: ${lead.name}`);
+    if (lead.email) lines.push(`Email: ${lead.email}`);
+    if (lead.phone) lines.push(`Phone: ${lead.phone}`);
+    if (lead.notes) lines.push(`Message: ${lead.notes}`);
+    lines.push(`Source: ${lead.source ?? "web"}`);
+    const text = lines.join("\n");
+
+    const res = await fetch(`${env.AI_GATEWAY_URL}/ai/agent`, {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        task:    "qualify_lead",
+        payload: { text },
+        meta:    { contactId },
+      }),
+      signal: AbortSignal.timeout(25_000),
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    const score = Math.max(1, Math.min(10, Math.round(Number(data.score))));
+    if (!Number.isFinite(score)) return;
+
+    await supabaseFetch(env, "PATCH", `/rest/v1/contacts?id=eq.${contactId}`, {
+      lead_score: score,
+    }, true);
+
+    await enqueueEvent(env, {
+      type:   "crm.lead.qualified",
+      source: "ai-gateway",
+      payload: {
+        contactId,
+        score,
+        tier:             data.tier ?? null,
+        needs:            data.needs ?? null,
+        urgency:          data.urgency ?? null,
+        budget_signal:    data.budget_signal ?? null,
+        recommended_action: data.recommended_action ?? null,
+      },
+    });
+  } catch {
+    // Never break intake on AI failures
+  }
 }
 
 async function handleListContacts(request, env) {
