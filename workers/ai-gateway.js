@@ -37,9 +37,9 @@ const JSON_HEADERS = { "Content-Type": "application/json" };
 // ---------------------------------------------------------------------------
 
 const MODELS = {
-  chat:    "@cf/meta/llama-3-8b-instruct",
-  fast:    "@cf/mistral/mistral-7b-instruct-v0.1",
-  summary: "@cf/meta/llama-3-8b-instruct",
+  chat:    "@cf/meta/llama-3.1-8b-instruct-fast",
+  fast:    "@cf/meta/llama-3.1-8b-instruct-fast",
+  summary: "@cf/meta/llama-3.1-8b-instruct-fast",
 };
 
 const INTENTS = ["schedule", "cancel", "inquiry", "complaint", "opt_out", "unknown"];
