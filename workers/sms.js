@@ -25,6 +25,7 @@
  * Routes:
  *   POST /sms/send        → outbound SMS via Twilio
  *   POST /sms/receive     → Twilio inbound webhook
+ *   GET  /health          → worker health probe
  *   GET  /sms/log         → recent SMS log (?direction=inbound|outbound&from=&limit=20)
  *   GET  /sms/opt-outs    → list opted-out numbers
  *
@@ -67,6 +68,10 @@ export default {
 
       if (url.pathname === "/sms/receive" && method === "POST") {
         return handleReceive(request, env, ctx);
+      }
+
+      if (url.pathname === "/health" && method === "GET") {
+        return ok({ ok: true, service: "linx-sms", ts: Date.now() });
       }
 
       if (url.pathname === "/sms/log" && method === "GET") {
