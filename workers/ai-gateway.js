@@ -52,6 +52,9 @@ const JSON_STRICT =
 // fences, preamble/epilogue text, and single-quoted pseudo-JSON. Returns
 // null when nothing parseable is found (callers fall back to defaults).
 function parseAgentJson(raw) {
+  // Workers AI parses JSON-looking model output into an object already —
+  // use it directly instead of stringifying to "[object Object]".
+  if (raw && typeof raw === "object" && !Array.isArray(raw)) return raw;
   const text = String(raw ?? "")
     .replace(/```(?:json)?/gi, "")
     .replace(/```/g, "")
@@ -259,8 +262,9 @@ async function handleChat(request, env, ctx) {
       return err(503, "No AI binding configured. Add [ai] to wrangler.jsonc or set LINX_ECHO_URL.");
     }
     const aiRes = await env.AI.run(model, { messages });
+    const aiText = aiRes?.response;
     result = {
-      response:  aiRes?.response ?? aiRes,
+      response:  typeof aiText === "string" ? aiText : JSON.stringify(aiText ?? aiRes ?? ""),
       model,
       tokensIn:  0,
       tokensOut: 0,
