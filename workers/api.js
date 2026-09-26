@@ -44,7 +44,7 @@
  */
 
 const JSON_HEADERS = { "Content-Type": "application/json" };
-const VERSION      = "1.3.2";
+const VERSION      = "1.4.0";
 
 // Routes that skip JWT auth entirely (method-aware).
 // POST /api/contacts is the public lead-intake endpoint used by the website
@@ -55,6 +55,7 @@ const PUBLIC_ROUTES = new Set([
   "GET /health",
   "POST /api/contacts",
   "GET /api/jobs",
+  "POST /api/auth/login",
 ]);
 
 // ---------------------------------------------------------------------------
@@ -69,6 +70,10 @@ export default {
     if (method === "OPTIONS") return corsOk();
 
     try {
+      // Public short-link redirect (dynamic path — checked before auth)
+      const shortMatch = method === "GET" && url.pathname.match(/^\/r\/([A-Za-z0-9_-]{3,32})$/);
+      if (shortMatch) return handleShortRedirect(shortMatch[1], env);
+
       // ── Auth middleware ──────────────────────────────────────────────────
       if (!PUBLIC_ROUTES.has(`${method} ${url.pathname}`)) {
         const authError = await authenticate(request, env);
@@ -118,6 +123,22 @@ export default {
       }
       if (url.pathname === "/api/automations/triggers" && method === "GET") {
         return handleListTriggers();
+      }
+
+      // Admin auth (public — in PUBLIC_ROUTES)
+      if (url.pathname === "/api/auth/login" && method === "POST") {
+        return handleAdminLogin(request, env);
+      }
+
+      // Dashboard stats
+      if (url.pathname === "/api/stats" && method === "GET") {
+        return handleGetStats(request, env);
+      }
+
+      // URL shortener (admin)
+      if (url.pathname === "/api/admin/short-links") {
+        if (method === "GET")  return handleListShortLinks(request, env);
+        if (method === "POST") return handleCreateShortLink(request, env);
       }
 
       // Event bus
@@ -242,6 +263,15 @@ async function authenticate(request, env) {
   }
 
   const token    = authHeader.slice(7);
+
+  // 1. LinX admin JWT (minted by POST /api/auth/login)
+  const adminPayload = await verifyAdminJwt(token, env);
+  if (adminPayload) {
+    request._user = { id: "admin", email: "admin", role: "admin", org_id: null };
+    return null;
+  }
+
+  // 2. Supabase user JWT (existing behaviour)
   const cacheKey = `auth:${token.slice(0, 32)}`;
   const cached   = await env.LINX_KV.get(cacheKey, { type: "json" });
 
@@ -272,6 +302,222 @@ async function authenticate(request, env) {
   });
 
   return null;
+}
+
+// ---------------------------------------------------------------------------
+// Admin auth — POST /api/auth/login
+// Verifies username/password against the ADMIN_USERNAME / ADMIN_PASSWORD_HASH
+// secrets and mints a 12-hour HS256 JWT signed with JWT_SECRET.
+// ADMIN_PASSWORD_HASH formats accepted:
+//   • 64-char hex SHA-256 of the password (recommended), or
+//   • the plain password stored as a secret (works, least preferred).
+// ---------------------------------------------------------------------------
+
+function b64urlEncode(bytes) {
+  let s = "";
+  const arr = new Uint8Array(bytes);
+  for (let i = 0; i < arr.length; i++) s += String.fromCharCode(arr[i]);
+  return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+function b64urlDecode(str) {
+  const bin = atob(str.replace(/-/g, "+").replace(/_/g, "/"));
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return bytes;
+}
+
+async function sha256Hex(text) {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+function timingSafeEqual(a, b) {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
+async function verifyAdminPassword(password, storedHash) {
+  if (!storedHash) return false;
+  if (storedHash.startsWith("$")) {
+    throw new Error("ADMIN_PASSWORD_HASH uses an unsupported (bcrypt-style) format — reset it to the SHA-256 hex of the password.");
+  }
+  if (/^[0-9a-fA-F]{64}$/.test(storedHash)) {
+    return timingSafeEqual(await sha256Hex(password), storedHash.toLowerCase());
+  }
+  return timingSafeEqual(password, storedHash);
+}
+
+async function mintAdminJwt(env) {
+  const enc = new TextEncoder();
+  const header  = b64urlEncode(enc.encode(JSON.stringify({ alg: "HS256", typ: "JWT" })));
+  const now     = Math.floor(Date.now() / 1000);
+  const payload = b64urlEncode(enc.encode(JSON.stringify({
+    sub: "admin", role: "admin", iat: now, exp: now + 12 * 3600,
+  })));
+  const key = await crypto.subtle.importKey("raw", enc.encode(env.JWT_SECRET),
+    { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const sig = await crypto.subtle.sign("HMAC", key, enc.encode(`${header}.${payload}`));
+  return `${header}.${payload}.${b64urlEncode(sig)}`;
+}
+
+// Returns the decoded payload if `token` is a valid LinX admin JWT, else null.
+// Decodes the payload first so Supabase tokens skip the HMAC verify entirely;
+// the payload is only trusted after the signature check passes.
+async function verifyAdminJwt(token, env) {
+  if (!env.JWT_SECRET) return null;
+  const parts = token.split(".");
+  if (parts.length !== 3) return null;
+  let payload;
+  try {
+    payload = JSON.parse(new TextDecoder().decode(b64urlDecode(parts[1])));
+  } catch { return null; }
+  if (payload.role !== "admin" || !payload.exp) return null;
+  if (payload.exp < Math.floor(Date.now() / 1000)) return null;
+  const enc = new TextEncoder();
+  const key = await crypto.subtle.importKey("raw", enc.encode(env.JWT_SECRET),
+    { name: "HMAC", hash: "SHA-256" }, false, ["verify"]);
+  let sig;
+  try { sig = b64urlDecode(parts[2]); } catch { return null; }
+  const valid = await crypto.subtle.verify("HMAC", key, sig, enc.encode(`${parts[0]}.${parts[1]}`));
+  return valid ? payload : null;
+}
+
+async function handleAdminLogin(request, env) {
+  let body;
+  try { body = await request.json(); }
+  catch { return err(400, "Invalid JSON body"); }
+  const username = String(body.username ?? "").trim();
+  const password = String(body.password ?? "");
+  if (!env.ADMIN_USERNAME || !env.ADMIN_PASSWORD_HASH || !env.JWT_SECRET) {
+    return err(500, "Admin login is not configured on this worker.");
+  }
+  if (!timingSafeEqual(username, String(env.ADMIN_USERNAME))) {
+    return err(401, "Invalid credentials.");
+  }
+  let pwOk;
+  try { pwOk = await verifyAdminPassword(password, String(env.ADMIN_PASSWORD_HASH)); }
+  catch (e) { return err(500, e.message); }
+  if (!pwOk) return err(401, "Invalid credentials.");
+  return ok({ token: await mintAdminJwt(env), token_type: "Bearer", expires_in: 12 * 3600 });
+}
+
+// ---------------------------------------------------------------------------
+// Dashboard stats — GET /api/stats (auth)
+// Real counts from Supabase for the admin console.
+// ---------------------------------------------------------------------------
+
+async function sbCount(env, path) {
+  const res = await fetch(`${env.SUPABASE_URL}/rest/v1/${path}`, {
+    headers: {
+      apikey:        env.SUPABASE_SERVICE_KEY,
+      Authorization: `Bearer ${env.SUPABASE_SERVICE_KEY}`,
+      Prefer:        "count=exact",
+    },
+  });
+  if (!res.ok) return null;
+  await res.text(); // drain — the total lives in Content-Range
+  const m = (res.headers.get("Content-Range") || "").match(/\/(\d+)\s*$/);
+  return m ? parseInt(m[1], 10) : null;
+}
+
+async function handleGetStats(request, env) {
+  const since72h = new Date(Date.now() - 72 * 3600_000).toISOString();
+  const [total, last72h, scored] = await Promise.all([
+    sbCount(env, "contacts?select=id"),
+    sbCount(env, `contacts?select=id&created_at=gte.${encodeURIComponent(since72h)}`),
+    sbCount(env, "contacts?select=id&lead_score=not.is.null"),
+  ]);
+
+  // Average AI lead score (client-side over up to 1000 scored leads)
+  let avgScore = null;
+  try {
+    const res = await supabaseFetch(env, "GET",
+      "/rest/v1/contacts?select=lead_score&lead_score=not.is.null&limit=1000", null, true);
+    if (res.ok) {
+      const rows = await res.json();
+      if (rows.length > 0) {
+        avgScore = Math.round((rows.reduce((a, r) => a + (r.lead_score ?? 0), 0) / rows.length) * 10) / 10;
+      }
+    }
+  } catch { /* leave avgScore null */ }
+
+  return ok({ contacts_total: total, contacts_72h: last72h, scored_count: scored, avg_score: avgScore });
+}
+
+// ---------------------------------------------------------------------------
+// URL shortener — KV-backed, admin-managed
+//   GET  /api/admin/short-links  (auth) — list links with click counts
+//   POST /api/admin/short-links  (auth) — create { destination_url, slug? }
+//   GET  /r/:slug                (public) — 302 redirect, counts the click
+// ---------------------------------------------------------------------------
+
+const SLUG_RE = /^[A-Za-z0-9_-]{3,32}$/;
+
+function randomSlug(n = 6) {
+  const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  const bytes = crypto.getRandomValues(new Uint8Array(n));
+  let s = "";
+  for (const b of bytes) s += chars[b % chars.length];
+  return s;
+}
+
+function shortUrlFor(request, slug) {
+  return `${new URL(request.url).origin}/r/${slug}`;
+}
+
+async function handleListShortLinks(request, env) {
+  const index = (await env.LINX_KV.get("sl:index", { type: "json" })) ?? [];
+  const links = [];
+  for (const slug of index) {
+    const rec = await env.LINX_KV.get(`sl:${slug}`, { type: "json" });
+    if (rec) links.push({ slug, short_url: shortUrlFor(request, slug), ...rec });
+  }
+  return ok({ links });
+}
+
+async function handleCreateShortLink(request, env) {
+  let body;
+  try { body = await request.json(); }
+  catch { return err(400, "Invalid JSON body"); }
+  const dest = String(body.destination_url ?? "").trim();
+  let slug = String(body.slug ?? "").trim();
+
+  let url;
+  try { url = new URL(dest); }
+  catch { return err(400, "destination_url must be a valid absolute URL"); }
+  if (!["http:", "https:"].includes(url.protocol)) {
+    return err(400, "destination_url must use http or https");
+  }
+  if (slug) {
+    if (!SLUG_RE.test(slug)) return err(400, "slug must be 3-32 chars: letters, numbers, dash, underscore");
+  } else {
+    slug = randomSlug();
+  }
+
+  const key = `sl:${slug}`;
+  if (await env.LINX_KV.get(key)) return err(409, `slug "${slug}" is already taken`);
+  const rec = {
+    destination_url: dest,
+    clicks:          0,
+    created_at:      new Date().toISOString(),
+    created_by:      request._user?.id ?? "admin",
+  };
+  await env.LINX_KV.put(key, JSON.stringify(rec));
+  const index = (await env.LINX_KV.get("sl:index", { type: "json" })) ?? [];
+  index.unshift(slug);
+  await env.LINX_KV.put("sl:index", JSON.stringify(index.slice(0, 500)));
+  return ok({ slug, short_url: shortUrlFor(request, slug), ...rec }, 201);
+}
+
+async function handleShortRedirect(slug, env) {
+  const rec = await env.LINX_KV.get(`sl:${slug}`, { type: "json" });
+  if (!rec) return err(404, "Short link not found");
+  rec.clicks = (rec.clicks ?? 0) + 1;
+  await env.LINX_KV.put(`sl:${slug}`, JSON.stringify(rec));
+  return Response.redirect(rec.destination_url, 302);
 }
 
 // ---------------------------------------------------------------------------
